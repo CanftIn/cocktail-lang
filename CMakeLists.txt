@@ -8,7 +8,7 @@ project(
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_BUILD_TYPE "Debug")
+set(CMAKE_BUILD_TYPE "Release")
 set(project_version "${${PROJECT_NAME}_VERSION}")
 
 message(STATUS "Project '${PROJECT_NAME}', version: '${project_version}'")
@@ -32,10 +32,14 @@ set(cocktail_SRCS)
 set(STATIC_LIB_NAME ${PROJECT_NAME})
 
 # apt install llvm-15-dev
-#set(LLVM_DIR /usr/lib/llvm-15/lib/cmake/llvm)
-set(LLVM_DIR /usr/local/lib/cmake/llvm)
+set(LLVM_DIR /usr/lib/llvm-15/lib/cmake/llvm)
+# manually install
+# set(LLVM_DIR /usr/local/lib/cmake/llvm)
 
 find_package(LLVM REQUIRED CONFIG)
+
+include_directories(${LLVM_INCLUDE_DIRS})
+add_definitions(${LLVM_DEFINITIONS})
 
 file(GLOB_RECURSE LIB_PATH ./lib/*.cc)
 list(APPEND cocktail_SRCS ${LIB_PATH})
