@@ -14,8 +14,7 @@ class SourceBuffer {
  public:
   static auto CreateFromText(llvm::Twine text,
                              llvm::StringRef filename = "/text")
-      -> SourceBuffer;
-
+      -> llvm::Expected<SourceBuffer>;
   static auto CreateFromFile(llvm::StringRef filename)
       -> llvm::Expected<SourceBuffer>;
 
@@ -23,45 +22,30 @@ class SourceBuffer {
 
   SourceBuffer(const SourceBuffer&) = delete;
 
-  SourceBuffer(SourceBuffer&& arg)
-      : filename_(std::move(arg.filename_)),
-        text_(arg.text_),
-        is_string_rep_(arg.is_string_rep_) {
-    if (!arg.is_string_rep_) {
-      arg.text_ = llvm::StringRef();
-      return;
-    }
-
-    new (&string_storage_) std::string(std::move(arg.string_storage_));
-    text_ = string_storage_;
-  }
+  SourceBuffer(SourceBuffer&& arg) noexcept;
 
   ~SourceBuffer();
 
-  llvm::StringRef Filename() const { return filename_; }
+  [[nodiscard]] auto filename() const -> llvm::StringRef { return filename_; }
 
-  llvm::StringRef Text() const { return text_; }
+  [[nodiscard]] auto text() const -> llvm::StringRef { return text_; }
 
  private:
-  std::string filename_;
-
-  llvm::StringRef text_;
-
-  bool is_string_rep_;
-
-  union {
-    std::string string_storage_;
+  enum class ContentMode {
+    Uninitialized,
+    MMapped,
+    Owned,
   };
 
-  explicit SourceBuffer(llvm::StringRef fake_filename, std::string buffer_text)
-      : filename_(fake_filename),
-        is_string_rep_(true),
-        string_storage_(buffer_text) {
-    text_ = string_storage_;
-  }
+  // Constructor for mmapped content.
+  explicit SourceBuffer(std::string filename, llvm::StringRef text);
+  // Constructor for owned content.
+  explicit SourceBuffer(std::string filename, std::string text);
 
-  explicit SourceBuffer(llvm::StringRef filename)
-      : filename_(filename.str()), text_(), is_string_rep_(false) {}
+  ContentMode content_mode_;
+  std::string filename_;
+  std::string text_storage_;
+  llvm::StringRef text_;
 };
 
 }  // namespace Cocktail
