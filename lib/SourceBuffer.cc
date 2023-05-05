@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <cassert>
 #include <cerrno>
 #include <limits>
 #include <system_error>
@@ -85,8 +86,8 @@ auto SourceBuffer::CreateFromFile(llvm::StringRef filename)
   }
 
   return SourceBuffer(
-    std::move(filename_str),
-    llvm::StringRef(static_cast<const char*>(mapped_text), size));
+      std::move(filename_str),
+      llvm::StringRef(static_cast<const char*>(mapped_text), size));
 }
 
 SourceBuffer::SourceBuffer(SourceBuffer&& arg) noexcept
@@ -107,8 +108,8 @@ SourceBuffer::SourceBuffer(std::string filename, llvm::StringRef text)
     : content_mode_(ContentMode::MMapped),
       filename_(std::move(filename)),
       text_(text) {
-  //CARBON_CHECK(!text.empty())
-  //    << "Must not have an empty text when we have mapped data from a file!";
+  assert((!text.empty()) &&
+         "Must not have an empty text when we have mapped data from a file!");
 }
 
 SourceBuffer::~SourceBuffer() {
@@ -117,7 +118,7 @@ SourceBuffer::~SourceBuffer() {
     int result =
         munmap(const_cast<void*>(static_cast<const void*>(text_.data())),
                text_.size());
-    //CARBON_CHECK(result != -1) << "Unmapping text failed!";
+    assert((result != -1) && "Unmapping text failed!");
   }
 }
 
