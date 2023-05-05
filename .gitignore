@@ -39,3 +39,4 @@ build
 compile_commands.json
 fuck
 build_cmake
+core.[0-9]*
