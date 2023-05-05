@@ -30,3 +30,12 @@
 *.exe
 *.out
 *.app
+
+.cache
+.xmake
+.DS_Store
+.vscode
+build
+compile_commands.json
+fuck
+build_cmake
