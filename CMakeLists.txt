@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.6)
 project(
-  cocktail-lang
+  cocktail
   VERSION 0.0.1
   LANGUAGES C CXX
 )
@@ -26,22 +26,26 @@ include(CTest)
 
 include_directories(include)
 
-# Create the domino C++ library
+# Create the cocktail C++ library
 set(cocktail_SRCS)
 
 set(STATIC_LIB_NAME ${PROJECT_NAME})
 
-set(LLVM_DIR /usr/lib/llvm-15/lib/cmake/llvm)
+# apt install llvm-15-dev
+#set(LLVM_DIR /usr/lib/llvm-15/lib/cmake/llvm)
+set(LLVM_DIR /usr/local/lib/cmake/llvm)
+
 find_package(LLVM REQUIRED CONFIG)
 
-list(APPEND domino_SRCS)
+file(GLOB_RECURSE LIB_PATH ./lib/*.cc)
+list(APPEND cocktail_SRCS ${LIB_PATH})
 
-add_library(${STATIC_LIB_NAME} STATIC ${domino_SRCS})
+add_library(${STATIC_LIB_NAME} STATIC ${cocktail_SRCS})
 target_link_libraries(${STATIC_LIB_NAME}
   LLVMSupport
   LLVMOption
 )
 
-if (DOMINO_OPT_BUILD_UNITTESTS)
+if (COCKTAIL_OPT_BUILD_UNITTESTS)
   add_subdirectory(unittests #[[EXCLUDE_FROM_ALL]])
 endif()
