@@ -1,0 +1,143 @@
+#ifndef COCKTAIL_TOKEN
+#define COCKTAIL_TOKEN(Name)
+#endif
+
+#ifndef COCKTAIL_SYMBOL_TOKEN
+#define COCKTAIL_SYMBOL_TOKEN(Name, Spelling) COCKTAIL_TOKEN(Name)
+#endif
+
+// clang-format off
+
+COCKTAIL_SYMBOL_TOKEN(GreaterGreaterEqual, ">>=")
+COCKTAIL_SYMBOL_TOKEN(LessEqualGreater,    "<=>")
+COCKTAIL_SYMBOL_TOKEN(LessLessEqual,       "<<=")
+
+COCKTAIL_SYMBOL_TOKEN(AmpEqual,            "&=")
+COCKTAIL_SYMBOL_TOKEN(CaretEqual,          "^=")
+COCKTAIL_SYMBOL_TOKEN(ColonEqual,          ":=")
+COCKTAIL_SYMBOL_TOKEN(EqualEqual,          "==")
+COCKTAIL_SYMBOL_TOKEN(EqualGreater,        "=>")
+COCKTAIL_SYMBOL_TOKEN(ExclaimEqual,        "!=")
+COCKTAIL_SYMBOL_TOKEN(GreaterEqual,        ">=")
+COCKTAIL_SYMBOL_TOKEN(GreaterGreater,      ">>")
+COCKTAIL_SYMBOL_TOKEN(LessEqual,           "<=")
+COCKTAIL_SYMBOL_TOKEN(LessGreater,         "<>")
+COCKTAIL_SYMBOL_TOKEN(LessLess,            "<<")
+COCKTAIL_SYMBOL_TOKEN(LessMinus,           "<-")
+COCKTAIL_SYMBOL_TOKEN(MinusEqual,          "-=")
+COCKTAIL_SYMBOL_TOKEN(MinusGreater,        "->")
+COCKTAIL_SYMBOL_TOKEN(MinusMinus,          "--")
+COCKTAIL_SYMBOL_TOKEN(PercentEqual,        "%=")
+COCKTAIL_SYMBOL_TOKEN(PipeEqual,           "|=")
+COCKTAIL_SYMBOL_TOKEN(PlusEqual,           "+=")
+COCKTAIL_SYMBOL_TOKEN(PlusPlus,            "++")
+COCKTAIL_SYMBOL_TOKEN(SlashEqual,          "/=")
+COCKTAIL_SYMBOL_TOKEN(StarEqual,           "*=")
+COCKTAIL_SYMBOL_TOKEN(TildeEqual,          "~=")
+
+COCKTAIL_SYMBOL_TOKEN(Amp,                 "&")
+COCKTAIL_SYMBOL_TOKEN(At,                  "@")
+COCKTAIL_SYMBOL_TOKEN(Backslash,           "\\")
+COCKTAIL_SYMBOL_TOKEN(Caret,               "^")
+COCKTAIL_SYMBOL_TOKEN(Colon,               ":")
+COCKTAIL_SYMBOL_TOKEN(Comma,               ",")
+COCKTAIL_SYMBOL_TOKEN(Equal,               "=")
+COCKTAIL_SYMBOL_TOKEN(Exclaim,             "!")
+COCKTAIL_SYMBOL_TOKEN(Greater,             ">")
+COCKTAIL_SYMBOL_TOKEN(Hash,                "#")
+COCKTAIL_SYMBOL_TOKEN(Less,                "<")
+COCKTAIL_SYMBOL_TOKEN(Minus,               "-")
+COCKTAIL_SYMBOL_TOKEN(Percent,             "%")
+COCKTAIL_SYMBOL_TOKEN(Period,              ".")
+COCKTAIL_SYMBOL_TOKEN(Pipe,                "|")
+COCKTAIL_SYMBOL_TOKEN(Plus,                "+")
+COCKTAIL_SYMBOL_TOKEN(Question,            "?")
+COCKTAIL_SYMBOL_TOKEN(Semi,                ";")
+COCKTAIL_SYMBOL_TOKEN(Slash,               "/")
+COCKTAIL_SYMBOL_TOKEN(Star,                "*")
+COCKTAIL_SYMBOL_TOKEN(Tilde,               "~")
+
+// clang-format on
+
+#ifndef COCKTAIL_OPENING_GROUP_SYMBOL_TOKEN
+#define COCKTAIL_OPENING_GROUP_SYMBOL_TOKEN(Name, Spelling, ClosingName) \
+  COCKTAIL_SYMBOL_TOKEN(Name, Spelling)
+#endif
+
+// clang-format on
+COCKTAIL_OPENING_GROUP_SYMBOL_TOKEN(OpenParen, "(", CloseParen)
+COCKTAIL_OPENING_GROUP_SYMBOL_TOKEN(OpenCurlyBrace, "{", CloseCurlyBrace)
+// clang-format off
+
+#undef COCKTAIL_OPENING_GROUP_SYMBOL_TOKEN
+
+#ifndef COCKTAIL_CLOSING_GROUP_SYMBOL_TOKEN
+#define COCKTAIL_CLOSING_GROUP_SYMBOL_TOKEN(Name, Spelling, OpeningName) \
+  COCKTAIL_SYMBOL_TOKEN(Name, Spelling)
+#endif
+
+// clang-format on
+COCKTAIL_CLOSING_GROUP_SYMBOL_TOKEN(CloseParen, ")", OpenParen)
+COCKTAIL_CLOSING_GROUP_SYMBOL_TOKEN(CloseCurlyBrace, "}", OpenCurlyBrace)
+// clang-format off
+
+#undef COCKTAIL_CLOSING_GROUP_SYMBOL_TOKEN
+
+#undef COCKTAIL_SYMBOL_TOKEN
+
+#ifndef COCKTAIL_KEYWORD_TOKEN
+#define COCKTAIL_KEYWORD_TOKEN(Name, Spelling) COCKTAIL_TOKEN(Name)
+#endif
+
+// clang-format off
+
+COCKTAIL_KEYWORD_TOKEN(AndKeyword,        "and")
+COCKTAIL_KEYWORD_TOKEN(AsmKeyword,        "asm")
+COCKTAIL_KEYWORD_TOKEN(BreakKeyword,      "break")
+COCKTAIL_KEYWORD_TOKEN(CatchKeyword,      "catch")
+COCKTAIL_KEYWORD_TOKEN(ClassKeyword,      "class")
+COCKTAIL_KEYWORD_TOKEN(ContinueKeyword,   "continue")
+COCKTAIL_KEYWORD_TOKEN(ElseKeyword,       "else")
+COCKTAIL_KEYWORD_TOKEN(EnumKeyword,       "enum")
+COCKTAIL_KEYWORD_TOKEN(ExternKeyword,     "extern")
+COCKTAIL_KEYWORD_TOKEN(FinalKeyword,      "final")
+COCKTAIL_KEYWORD_TOKEN(FixKeyword,        "fix")
+COCKTAIL_KEYWORD_TOKEN(FnKeyword,         "fn")
+COCKTAIL_KEYWORD_TOKEN(ForKeyword,        "for")
+COCKTAIL_KEYWORD_TOKEN(GuardKeyword,      "guard")
+COCKTAIL_KEYWORD_TOKEN(IfKeyword,         "if")
+COCKTAIL_KEYWORD_TOKEN(InlineKeyword,     "inline")
+COCKTAIL_KEYWORD_TOKEN(InoutKeyword,      "inout")
+COCKTAIL_KEYWORD_TOKEN(InterfaceKeyword,  "interface")
+COCKTAIL_KEYWORD_TOKEN(InternalKeyword,   "internal")
+COCKTAIL_KEYWORD_TOKEN(LetKeyword,        "let")
+COCKTAIL_KEYWORD_TOKEN(LoopKeyword,       "loop")
+COCKTAIL_KEYWORD_TOKEN(MatchKeyword,      "match")
+COCKTAIL_KEYWORD_TOKEN(NotKeyword,        "not")
+COCKTAIL_KEYWORD_TOKEN(OrKeyword,         "or")
+COCKTAIL_KEYWORD_TOKEN(OutKeyword,        "out")
+COCKTAIL_KEYWORD_TOKEN(PrivateKeyword,    "private")
+COCKTAIL_KEYWORD_TOKEN(ProtectedKeyword,  "protected")
+COCKTAIL_KEYWORD_TOKEN(PublicKeyword,     "public")
+COCKTAIL_KEYWORD_TOKEN(RefKeyword,        "ref")
+COCKTAIL_KEYWORD_TOKEN(ReturnKeyword,     "return")
+COCKTAIL_KEYWORD_TOKEN(StaticKeyword,     "static")
+COCKTAIL_KEYWORD_TOKEN(StructKeyword,     "struct")
+COCKTAIL_KEYWORD_TOKEN(ThroKeyword,       "throw")
+COCKTAIL_KEYWORD_TOKEN(TryKeyword,        "try")
+COCKTAIL_KEYWORD_TOKEN(UnderscoreKeyword, "_")
+COCKTAIL_KEYWORD_TOKEN(VarKeyword,        "var")
+COCKTAIL_KEYWORD_TOKEN(VirtualKeyword,    "virtual")
+COCKTAIL_KEYWORD_TOKEN(WhileKeyword,      "while")
+COCKTAIL_KEYWORD_TOKEN(XorKeyword,        "xor")
+
+// clang-format on
+
+#undef COCKTAIL_KEYWORD_TOKEN
+
+COCKTAIL_TOKEN(Identifier)
+COCKTAIL_TOKEN(IntegerLiteral)
+COCKTAIL_TOKEN(DocComment)
+COCKTAIL_TOKEN(Error)
+
+#undef COCKTAIL_TOKEN

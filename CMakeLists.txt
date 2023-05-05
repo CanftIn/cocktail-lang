@@ -41,7 +41,10 @@ find_package(LLVM REQUIRED CONFIG)
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
-file(GLOB_RECURSE LIB_PATH ./lib/*.cc)
+file(GLOB_RECURSE LIB_PATH
+    ./lib/*.cc
+    ./lib/Lexer/*.cc
+  )
 list(APPEND cocktail_SRCS ${LIB_PATH})
 
 add_library(${STATIC_LIB_NAME} STATIC ${cocktail_SRCS})
