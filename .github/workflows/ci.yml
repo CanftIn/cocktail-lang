@@ -18,7 +18,7 @@ jobs:
       - name: setup
         run: |
          sudo apt-get update
-         sudo apt-get install cmake g++ clang libgtest-dev make valgrind libbenchmark-dev llvm-15-dev
+         sudo apt-get install cmake g++ clang libgtest-dev libgmock-dev make valgrind libbenchmark-dev llvm-15-dev
       - uses: actions/checkout@v3
       - name: Generate makefile using CMake
         run: |
