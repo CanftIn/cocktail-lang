@@ -1,2 +1,3 @@
 # cocktail
-None
+
+To be a C++ intergration programming language.
