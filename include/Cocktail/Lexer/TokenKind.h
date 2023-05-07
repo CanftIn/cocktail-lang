@@ -1,5 +1,5 @@
-#ifndef COCKTAIL_LEXER_TOKENKIND_H
-#define COCKTAIL_LEXER_TOKENKIND_H
+#ifndef COCKTAIL_LEXER_TOKEN_KIND_H
+#define COCKTAIL_LEXER_TOKEN_KIND_H
 
 #include <cstdint>
 #include <iterator>
@@ -61,4 +61,4 @@ class TokenKind {
 
 }  // namespace Cocktail
 
-#endif  // COCKTAIL_LEXER_TOKENKIND_H
+#endif  // COCKTAIL_LEXER_TOKEN_KIND_H

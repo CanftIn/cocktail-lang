@@ -1,5 +1,5 @@
-#ifndef COCKTAIL_SOURCEBUFFER_H
-#define COCKTAIL_SOURCEBUFFER_H
+#ifndef COCKTAIL_SOURCE_BUFFER_H
+#define COCKTAIL_SOURCE_BUFFER_H
 
 #include <string>
 #include <utility>
@@ -50,4 +50,4 @@ class SourceBuffer {
 
 }  // namespace Cocktail
 
-#endif  // COCKTAIL_SOURCEBUFFER_H
+#endif  // COCKTAIL_SOURCE_BUFFER_H
