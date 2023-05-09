@@ -325,6 +325,195 @@ auto TokenizedBuffer::GetKind(Token token) const -> TokenKind {
   return GetTokenInfo(token).kind;
 }
 
+auto TokenizedBuffer::GetLine(Token token) const -> Line {
+  return GetTokenInfo(token).token_line;
+}
+
+auto TokenizedBuffer::GetLineNumber(Token token) const -> int {
+  return GetLineNumber(GetLine(token));
+}
+
+auto TokenizedBuffer::GetColumnNumber(Token token) const -> int {
+  return GetTokenInfo(token).column + 1;
+}
+
+auto TokenizedBuffer::GetTokenText(Token token) const -> llvm::StringRef {
+  auto& token_info = GetTokenInfo(token);
+  llvm::StringRef fixed_spelling = token_info.kind.GetFixedSpelling();
+  if (!fixed_spelling.empty()) {
+    return fixed_spelling;
+  }
+
+  if (token_info.kind == TokenKind::Error()) {
+    auto& line_info = GetLineInfo(token_info.token_line);
+    int64_t token_start = line_info.start + token_info.column;
+    return source->text().substr(token_start, token_info.error_length);
+  }
+
+  if (token_info.kind == TokenKind::DocComment()) {
+    auto& line_info = GetLineInfo(token_info.token_line);
+    int64_t token_start = line_info.start + token_info.column;
+    int64_t token_stop = line_info.start + line_info.length;
+    return source->text().slice(token_start, token_stop);
+  }
+
+  if (token_info.kind == TokenKind::IntegerLiteral) {
+    auto& line_info = GetLineInfo(token_info.token_line);
+    int64_t token_start = line_info.start + token_info.column;
+    return TakeLeadingIntegerLiteral(source->text().substr(token_start));
+  }
+
+  assert(token_info.kind == TokenKind::Identifier() &&
+         "Only identifiers have stored text!");
+  return GetIdentifierText(token_info.id);
+}
+
+auto TokenizedBuffer::GetIdentifier(Token token) const -> Identifier {
+  auto& token_info = GetTokenInfo(token);
+  assert(token_info.kind == TokenKind::Identifier() &&
+         "The token must be an identifier!");
+  return token_info.id;
+}
+
+auto TokenizedBuffer::GetIntegerLiteral(Token token) const -> llvm::APInt {
+  auto& token_info = GetTokenInfo(token);
+  assert(token_info.kind == TokenKind::IntegerLiteral &&
+         "The token must be an integer literal!");
+  return int_literals[token_info.literal_index];
+}
+
+auto TokenizedBuffer::GetMatchedClosingToken(Token opening_token) const
+    -> Token {
+  auto& opening_token_info = GetTokenInfo(opening_token);
+  assert(opening_token_info.kind.IsOpeningSymbol() &
+         "The token must be an opening group symbol!");
+  return opening_token_info.closing_token;
+}
+
+auto TokenizedBuffer::GetMatchedOpeningToken(Token closing_token) const
+    -> Token {
+  auto& closing_token_info = GetTokenInfo(closing_token);
+  assert(closing_token_info.kind.IsClosingSymbol() &
+         "The token must be a closing group symbol!");
+  return closing_token_info.opening_token;
+}
+
+auto TokenizedBuffer::IsRecoveryToken(Token token) const -> bool {
+  return GetTokenInfo(token).is_recovery;
+}
+
+auto TokenizedBuffer::GetLineNumber(Line line) const -> int {
+  return line.index + 1;
+}
+
+auto TokenizedBuffer::GetIndentColumnNumber(Line line) const -> int {
+  return GetLineInfo(line).indent + 1;
+}
+
+auto TokenizedBuffer::GetIdentifierText(Identifier id) const
+    -> llvm::StringRef {
+  return identifier_infos[identifier.index].text;
+}
+
+auto TokenizedBuffer::PrintWidths::Widen(const PrintWidths& widths) -> void {
+  index = std::max(index, widths.index);
+  kind = std::max(kind, widths.kind);
+  line = std::max(line, widths.line);
+  column = std::max(column, widths.column);
+  indent = std::max(indent, widths.indent);
+}
+
+auto TokenizedBuffer::GetTokenPrintWidths(Token token) const -> PrintWidths {
+  PrintWidths widths = {};
+  widths.index = std::log10(token_infos.size()) + 1;
+  widths.kind = GetKind(token).Name().size();
+  widths.line = std::log10(GetLineNumber(token)) + 1;
+  widths.column = std::log10(GetColumnNumber(token)) + 1;
+  widths.indent = std::log10(GetIndentColumnNumber(GetLine(token))) + 1;
+  return widths;
+}
+
+auto TokenizedBuffer::Print(llvm::raw_ostream& output_stream) const -> void {
+  if (Tokens().begin() == Tokens().end()) {
+    return;
+  }
+
+  PrintWidths widths = {};
+  widths.index = std::log10(token_infos.size()) + 1;
+  for (Token token : Tokens()) {
+    widths.Widen(GetTokenPrintWidths(token));
+  }
+
+  for (Token token : Tokens()) {
+    PrintToken(output_stream, token, widths);
+    output_stream << "\n";
+  }
+}
+
+auto TokenizedBuffer::PrintToken(llvm::raw_ostream& output_stream,
+                                 Token token) const -> void {
+  PrintToken(output_stream, token, {});
+}
+
+auto TokenizedBuffer::PrintToken(llvm::raw_ostream& output_stream, Token token,
+                                 PrintWidths widths) const -> void {
+  widths.Widen(GetTokenPrintWidths(token));
+  int token_index = token.index;
+  auto& token_info = GetTokenInfo(token);
+  llvm::StringRef token_text = GetTokenText(token);
+
+  // Output the main chunk using one format string. We have to do the
+  // justification manually in order to use the dynamically computed widths
+  // and get the quotes included.
+  output_stream << llvm::formatv(
+      "token: { index: {0}, kind: {1}, line: {2}, column: {3}, indent: {4}, "
+      "spelling: '{5}'",
+      llvm::format_decimal(token_index, widths.index),
+      llvm::right_justify(
+          (llvm::Twine("'") + token_info.kind.Name() + "'").str(),
+          widths.kind + 2),
+      llvm::format_decimal(GetLineNumber(token_info.token_line), widths.line),
+      llvm::format_decimal(GetColumnNumber(token), widths.column),
+      llvm::format_decimal(GetIndentColumnNumber(token_info.token_line),
+                           widths.indent),
+      token_text);
+
+  if (token_info.kind == TokenKind::Identifier()) {
+    output_stream << ", identifier: " << GetIdentifier(token).index;
+  } else if (token_info.kind.IsOpeningSymbol()) {
+    output_stream << ", closing_token: " << GetMatchedClosingToken(token).index;
+  } else if (token_info.kind.IsClosingSymbol()) {
+    output_stream << ", opening_token: " << GetMatchedOpeningToken(token).index;
+  }
+
+  if (token_info.is_recovery) {
+    output_stream << ", recovery: true";
+  }
+
+  output_stream << " }";
+}
+
+auto TokenizedBuffer::GetLineInfo(Line line) -> LineInfo& {
+  return line_infos[line.index];
+}
+
+auto TokenizedBuffer::GetLineInfo(Line line) const -> const LineInfo& {
+  return line_infos[line.index];
+}
+
+auto TokenizedBuffer::AddLine(LineInfo info) -> Line {
+  line_infos.push_back(info);
+  return Line(line_infos.size() - 1);
+}
+
+auto TokenizedBuffer::GetTokenInfo(Token token) -> TokenInfo& {
+  return token_infos[token.index];
+}
+
+auto TokenizedBuffer::GetTokenInfo(Token token) const -> const TokenInfo& {
+  return token_infos[token.index];
+}
+
 auto TokenizedBuffer::AddToken(TokenInfo info) -> Token {
   token_infos.push_back(info);
   return Token(token_infos.size() - 1);
