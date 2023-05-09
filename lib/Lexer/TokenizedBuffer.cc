@@ -357,7 +357,7 @@ auto TokenizedBuffer::GetTokenText(Token token) const -> llvm::StringRef {
     return source->text().slice(token_start, token_stop);
   }
 
-  if (token_info.kind == TokenKind::IntegerLiteral) {
+  if (token_info.kind == TokenKind::IntegerLiteral()) {
     auto& line_info = GetLineInfo(token_info.token_line);
     int64_t token_start = line_info.start + token_info.column;
     return TakeLeadingIntegerLiteral(source->text().substr(token_start));
@@ -410,7 +410,7 @@ auto TokenizedBuffer::GetIndentColumnNumber(Line line) const -> int {
   return GetLineInfo(line).indent + 1;
 }
 
-auto TokenizedBuffer::GetIdentifierText(Identifier id) const
+auto TokenizedBuffer::GetIdentifierText(Identifier identifier) const
     -> llvm::StringRef {
   return identifier_infos[identifier.index].text;
 }
