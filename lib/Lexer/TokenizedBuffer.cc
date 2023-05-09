@@ -144,11 +144,11 @@ class TokenizedBuffer::Lexer {
   }
 
   auto LexSymbolToken(llvm::StringRef& source_text) -> bool {
-    TokenKind kind = llvm::StringSwitch<TokenKind>(source_text);
+    TokenKind kind = llvm::StringSwitch<TokenKind>(source_text)
 #define COCKTAIL_SYMBOL_TOKEN(Name, Spelling) \
   .StartsWith(Spelling, TokenKind::Name())
 #include "Cocktail/Lexer/TokenRegistry.def"
-    .Default(TokenKind::Error());
+                         .Default(TokenKind::Error());
     if (kind == TokenKind::Error()) {
       return false;
     }
@@ -177,7 +177,7 @@ class TokenizedBuffer::Lexer {
     TokenInfo& closing_token_info = buffer.GetTokenInfo(token);
 
     if (open_groups.empty()) {
-      closing_token_info.kind = TokenKind.Error();
+      closing_token_info.kind = TokenKind::Error();
       closing_token_info.error_length = kind.GetFixedSpelling().size();
       buffer.has_errors = true;
       return true;
@@ -215,9 +215,9 @@ class TokenizedBuffer::Lexer {
     }
   }
 
-  auto GetOrCreateIdentifier(llvm::StringRef text) -> identifier {
-    auto insert_result =
-        buffer.identifier_map.insert({text, buffer.identifier_infos.size()});
+  auto GetOrCreateIdentifier(llvm::StringRef text) -> Identifier {
+    auto insert_result = buffer.identifier_map.insert(
+        {text, Identifier(buffer.identifier_infos.size())});
     if (insert_result.second) {
       buffer.identifier_infos.push_back({text});
     }
@@ -229,9 +229,9 @@ class TokenizedBuffer::Lexer {
       return false;
     }
 
-    if (!set_ident) {
+    if (!set_indent) {
       current_line_info->indent = current_column;
-      set_ident = true;
+      set_indent = true;
     }
 
     llvm::StringRef identifier_text = source_text.take_while(
@@ -255,7 +255,8 @@ class TokenizedBuffer::Lexer {
 
     buffer.AddToken({.kind = TokenKind::Identifier(),
                      .token_line = current_line,
-                     .column = identifier_column.id = identifier_column});
+                     .column = identifier_column,
+                     .id = GetOrCreateIdentifier(identifier_text)});
     return true;
   }
 
@@ -280,12 +281,14 @@ class TokenizedBuffer::Lexer {
     if (error_text.empty()) {
       error_text = source_text.take_front(1);
     }
+
+    // Longer errors get to be two tokens.
     error_text = error_text.substr(0, std::numeric_limits<int32_t>::max());
     auto token = buffer.AddToken(
-        {.kind = TokenKind::Error(),
-         .token_line = current_line,
-         .column = current_column,
-         .error_length = static_cast<int32_t>(error_text.size())});
+        TokenInfo{.kind = TokenKind::Error(),
+                  .token_line = current_line,
+                  .column = current_column,
+                  .error_length = static_cast<int32_t>(error_text.size())});
     llvm::errs() << "ERROR: Line " << buffer.GetLineNumber(token) << ", Column "
                  << buffer.GetColumnNumber(token)
                  << ": Unrecognized characters!\n";
@@ -316,6 +319,15 @@ auto TokenizedBuffer::Lex(SourceBuffer& source) -> TokenizedBuffer {
 
   lexer.CloseInvalidOpenGroups(TokenKind::Error());
   return buffer;
+}
+
+auto TokenizedBuffer::GetKind(Token token) const -> TokenKind {
+  return GetTokenInfo(token).kind;
+}
+
+auto TokenizedBuffer::AddToken(TokenInfo info) -> Token {
+  token_infos.push_back(info);
+  return Token(token_infos.size() - 1);
 }
 
 }  // namespace Cocktail
