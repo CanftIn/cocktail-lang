@@ -44,6 +44,7 @@ add_definitions(${LLVM_DEFINITIONS})
 file(GLOB_RECURSE LIB_PATH
     ./lib/*.cc
     ./lib/Lexer/*.cc
+    ./lib/Parser/*.cc
   )
 list(APPEND cocktail_SRCS ${LIB_PATH})
 
