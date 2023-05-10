@@ -225,7 +225,7 @@ class TokenizedBuffer::Lexer {
   }
 
   auto LexKeywordOrIdentifier(llvm::StringRef& source_text) -> bool {
-    if (!!llvm::isAlpha(source_text.front()) && source_text.front() != '_') {
+    if (!llvm::isAlpha(source_text.front()) && source_text.front() != '_') {
       return false;
     }
 
@@ -377,7 +377,7 @@ auto TokenizedBuffer::GetIdentifier(Token token) const -> Identifier {
 
 auto TokenizedBuffer::GetIntegerLiteral(Token token) const -> llvm::APInt {
   auto& token_info = GetTokenInfo(token);
-  assert(token_info.kind == TokenKind::IntegerLiteral &&
+  assert(token_info.kind == TokenKind::IntegerLiteral() &&
          "The token must be an integer literal!");
   return int_literals[token_info.literal_index];
 }
@@ -385,7 +385,7 @@ auto TokenizedBuffer::GetIntegerLiteral(Token token) const -> llvm::APInt {
 auto TokenizedBuffer::GetMatchedClosingToken(Token opening_token) const
     -> Token {
   auto& opening_token_info = GetTokenInfo(opening_token);
-  assert(opening_token_info.kind.IsOpeningSymbol() &
+  assert(opening_token_info.kind.IsOpeningSymbol() &&
          "The token must be an opening group symbol!");
   return opening_token_info.closing_token;
 }
@@ -393,7 +393,7 @@ auto TokenizedBuffer::GetMatchedClosingToken(Token opening_token) const
 auto TokenizedBuffer::GetMatchedOpeningToken(Token closing_token) const
     -> Token {
   auto& closing_token_info = GetTokenInfo(closing_token);
-  assert(closing_token_info.kind.IsClosingSymbol() &
+  assert(closing_token_info.kind.IsClosingSymbol() &&
          "The token must be a closing group symbol!");
   return closing_token_info.opening_token;
 }
