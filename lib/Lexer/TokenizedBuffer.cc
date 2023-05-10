@@ -205,9 +205,11 @@ class TokenizedBuffer::Lexer {
       open_groups.pop_back();
       buffer.has_errors = true;
 
-      Token closing_token = buffer.AddToken({.kind = TokenKind::Error(),
-                                             .token_line = current_line,
-                                             .column = current_column});
+      Token closing_token =
+          buffer.AddToken({.kind = opening_kind.GetClosingSymbol(),
+                           .is_recovery = true,
+                           .token_line = current_line,
+                           .column = current_column});
       TokenInfo& opening_token_info = buffer.GetTokenInfo(opening_token);
       TokenInfo& closing_token_info = buffer.GetTokenInfo(closing_token);
       opening_token_info.closing_token = closing_token;
