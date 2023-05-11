@@ -14,6 +14,7 @@ set(project_version "${${PROJECT_NAME}_VERSION}")
 message(STATUS "Project '${PROJECT_NAME}', version: '${project_version}'")
 
 option(COCKTAIL_OPT_BUILD_UNITTESTS "Build all cocktail unittests" ON)
+option(COCKTAIL_OPT_BUILD_TOOLS "Build cocktail execute tools" ON)
 
 # temp define: https://discourse.llvm.org/t/python-api-problem/945
 add_compile_options(-fno-rtti)
@@ -45,6 +46,7 @@ file(GLOB_RECURSE LIB_PATH
     ./lib/*.cc
     ./lib/Lexer/*.cc
     ./lib/Parser/*.cc
+    ./lib/Driver/*.cc
   )
 list(APPEND cocktail_SRCS ${LIB_PATH})
 
@@ -56,4 +58,8 @@ target_link_libraries(${STATIC_LIB_NAME}
 
 if (COCKTAIL_OPT_BUILD_UNITTESTS)
   add_subdirectory(unittests #[[EXCLUDE_FROM_ALL]])
+endif()
+
+if (COCKTAIL_OPT_BUILD_TOOLS)
+  add_subdirectory(tools)
 endif()
