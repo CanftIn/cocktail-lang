@@ -154,7 +154,7 @@ class ParseTree::PostorderIterator
 
 class ParseTree::SiblingIterator
     : public llvm::iterator_facade_base<SiblingIterator,
-                                        std::random_access_iterator_tag, Node,
+                                        std::forward_iterator_tag, Node,
                                         int, Node*, Node> {
  public:
   SiblingIterator() = default;
@@ -164,7 +164,7 @@ class ParseTree::SiblingIterator
   }
 
   auto operator<(const SiblingIterator& rhs) const -> bool {
-    return node < rhs.node;
+    return node > rhs.node;
   }
 
   auto operator*() const -> Node { return node; }
