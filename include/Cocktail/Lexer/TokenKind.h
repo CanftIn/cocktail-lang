@@ -49,12 +49,12 @@ class TokenKind {
 
   auto GetFixedSpelling() const -> llvm::StringRef;
 
-  constexpr explicit operator int() const {
+  constexpr operator int() const {
     return static_cast<int>(kind_value);
   }
 
  private:
-  constexpr explicit TokenKind(KindEnum kind_value) : kind_value(kind_value) {}
+  constexpr TokenKind(KindEnum kind_value) : kind_value(kind_value) {}
 
   KindEnum kind_value;
 };
