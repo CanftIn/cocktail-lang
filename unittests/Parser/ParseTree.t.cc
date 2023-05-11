@@ -66,4 +66,20 @@ TEST_F(ParseTreeTest, EmptyDeclaration) {
   EXPECT_THAT(tree.Children(n).begin(), Eq(tree.Children(n).end()));
 }
 
+TEST_F(ParseTreeTest, BasicFunctionDeclaration) {
+  TokenizedBuffer tokens = GetTokenizedBuffer("fn F();");
+  ParseTree tree = ParseTree::Parse(tokens);
+  EXPECT_FALSE(tree.HasErrors());
+  EXPECT_THAT(
+      tree, MatchParseTreeNodes(
+                {{.kind = ParseNodeKind::FunctionDeclaration(),
+                  .text = "fn",
+                  .children = {
+                      {ParseNodeKind::Identifier(), "F"},
+                      {.kind = ParseNodeKind::ParameterList(),
+                       .text = "(",
+                       .children = {{ParseNodeKind::ParameterListEnd(), ")"}}},
+                      {ParseNodeKind::DeclarationEnd(), ";"}}}}));
+}
+
 }  // namespace
