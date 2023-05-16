@@ -27,7 +27,7 @@ class DiagnosticEmitter {
 
   template <typename DiagnosticT>
   void EmitError(
-      llvm::function_ref<void(typename DiagnosticT::Substitution&)> f) {
+      llvm::function_ref<void(typename DiagnosticT::Substitutions&)> f) {
     typename DiagnosticT::Substitutions substitutions;
     f(substitutions);
     callback_({.short_name = DiagnosticT::ShortName,

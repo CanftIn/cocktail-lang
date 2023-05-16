@@ -1,13 +1,5 @@
 cmake_minimum_required(VERSION 3.6)
 
-find_program(CMAKE_MEMORYCHECK_COMMAND valgrind)
-set(memcheck_command ${CMAKE_MEMORYCHECK_COMMAND} ${CMAKE_MEMORYCHECK_COMMAND_OPTIONS} --error-exitcode=1 --leak-check=full)
-
-add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND})
-
-enable_testing()
-find_package(GTest REQUIRED CONFIG)
-
 file(GLOB UNITTESTS_LIST *.cc)
 
 foreach(FILE_PATH ${UNITTESTS_LIST})
@@ -19,8 +11,3 @@ foreach(FILE_PATH ${UNITTESTS_LIST})
   add_dependencies(check ${FILE_NAME})
   add_test(${FILE_NAME}-memory-check ${memcheck_command} ./${FILE_NAME})
 endforeach()
-
-
-add_subdirectory(Lexer)
-add_subdirectory(Parser)
-add_subdirectory(Diagnostics)
