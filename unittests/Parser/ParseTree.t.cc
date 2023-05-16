@@ -82,4 +82,93 @@ TEST_F(ParseTreeTest, BasicFunctionDeclaration) {
                       {ParseNodeKind::DeclarationEnd(), ";"}}}}));
 }
 
+TEST_F(ParseTreeTest, BasicFunctionDefinition) {
+  TokenizedBuffer tokens = GetTokenizedBuffer(
+      "fn F() {\n"
+      "}");
+  ParseTree tree = ParseTree::Parse(tokens);
+  EXPECT_FALSE(tree.HasErrors());
+  EXPECT_THAT(
+      tree, MatchParseTreeNodes(
+                {{.kind = ParseNodeKind::FunctionDeclaration(),
+                  .children = {
+                      {ParseNodeKind::Identifier(), "F"},
+                      {.kind = ParseNodeKind::ParameterList(),
+                       .children = {{ParseNodeKind::ParameterListEnd()}}},
+                      {.kind = ParseNodeKind::CodeBlock(),
+                       .text = "{",
+                       .children = {{ParseNodeKind::CodeBlockEnd(), "}"}}}}}}));
+}
+
+TEST_F(ParseTreeTest, FunctionDefinitionWithNestedBlocks) {
+  TokenizedBuffer tokens = GetTokenizedBuffer(
+      "fn F() {\n"
+      "  {\n"
+      "    {{}}\n"
+      "  }\n"
+      "}");
+  ParseTree tree = ParseTree::Parse(tokens);
+  EXPECT_FALSE(tree.HasErrors());
+  EXPECT_THAT(
+      tree,
+      MatchParseTreeNodes(
+          {{.kind = ParseNodeKind::FunctionDeclaration(),
+            .children = {
+                {ParseNodeKind::Identifier(), "F"},
+                {.kind = ParseNodeKind::ParameterList(),
+                 .children = {{ParseNodeKind::ParameterListEnd()}}},
+                {.kind = ParseNodeKind::CodeBlock(),
+                 .children = {
+                     {.kind = ParseNodeKind::CodeBlock(),
+                      .children = {{.kind = ParseNodeKind::CodeBlock(),
+                                    .children =
+                                        {{.kind = ParseNodeKind::CodeBlock(),
+                                          .children = {{ParseNodeKind::
+                                                            CodeBlockEnd()}}},
+                                         {ParseNodeKind::CodeBlockEnd()}}},
+                                   {ParseNodeKind::CodeBlockEnd()}}},
+                     {ParseNodeKind::CodeBlockEnd()}}}}}}));
+}
+
+TEST_F(ParseTreeTest, FunctionDefinitionWithIdenifierInStatements) {
+  TokenizedBuffer tokens = GetTokenizedBuffer(
+      "fn F() {\n"
+      "  bar\n"
+      "}");
+  ParseTree tree = ParseTree::Parse(tokens);
+  EXPECT_TRUE(tree.HasErrors());
+  EXPECT_THAT(
+      tree,
+      MatchParseTreeNodes(
+          {{.kind = ParseNodeKind::FunctionDeclaration(),
+            .children = {{ParseNodeKind::Identifier(), "F"},
+                         {.kind = ParseNodeKind::ParameterList(),
+                          .children = {{ParseNodeKind::ParameterListEnd()}}},
+                         {.kind = ParseNodeKind::CodeBlock(),
+                          .has_error = true,
+                          .children = {{ParseNodeKind::CodeBlockEnd()}}}}}}));
+}
+
+TEST_F(ParseTreeTest, FunctionDefinitionWithIdenifierInNestedBlock) {
+  TokenizedBuffer tokens = GetTokenizedBuffer(
+      "fn F() {\n"
+      "  {bar}\n"
+      "}");
+  ParseTree tree = ParseTree::Parse(tokens);
+  EXPECT_TRUE(tree.HasErrors());
+  EXPECT_THAT(
+      tree,
+      MatchParseTreeNodes(
+          {{.kind = ParseNodeKind::FunctionDeclaration(),
+            .children = {
+                {ParseNodeKind::Identifier(), "F"},
+                {.kind = ParseNodeKind::ParameterList(),
+                 .children = {{ParseNodeKind::ParameterListEnd()}}},
+                {.kind = ParseNodeKind::CodeBlock(),
+                 .children = {{.kind = ParseNodeKind::CodeBlock(),
+                               .has_error = true,
+                               .children = {{ParseNodeKind::CodeBlockEnd()}}},
+                              {ParseNodeKind::CodeBlockEnd()}}}}}}));
+}
+
 }  // namespace
