@@ -1,0 +1,13 @@
+#ifndef COCKTAIL_SUBCOMMAND
+#define COCKTAIL_SUBCOMMAND(Name, Spelling, HelpText)
+#endif
+
+COCKTAIL_SUBCOMMAND(Help, "help",
+                    "Display help information about the driver options.")
+COCKTAIL_SUBCOMMAND(
+    DumpTokens, "dump-tokens",
+    "Dumps the sequence of tokens lexed out of the input source file.")
+COCKTAIL_SUBCOMMAND(DumpParseTree, "dump-parse-tree",
+                    "Dumps the parse tree for the input source file.")
+
+#undef COCKTAIL_SUBCOMMAND
