@@ -162,7 +162,7 @@ auto ParseTree::Parser::ParseFunctionSignature() -> Node {
   bool has_errors = false;
   auto close_paren = ConsumeIf(TokenKind::CloseParen());
   if (!close_paren) {
-    llvm::errs() << "ERROR: unexpected token before the close of the"
+    llvm::errs() << "ERROR: unexpected token before the close of the "
                     "parameters on line "
                  << tokens.GetLineNumber(*position) << "!\n";
     has_errors = true;

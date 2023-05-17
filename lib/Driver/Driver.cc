@@ -89,7 +89,7 @@ auto Driver::RunHelpSubcommand(llvm::ArrayRef<llvm::StringRef> args) -> bool {
 
 auto Driver::RunDumpTokensSubcommand(llvm::ArrayRef<llvm::StringRef> args)
     -> bool {
-  if (!args.empty()) {
+  if (args.empty()) {
     error_stream << "ERROR: No input file specified.\n";
     return false;
   }
@@ -118,7 +118,7 @@ auto Driver::RunDumpTokensSubcommand(llvm::ArrayRef<llvm::StringRef> args)
 
 auto Driver::RunDumpParseTreeSubcommand(llvm::ArrayRef<llvm::StringRef> args)
     -> bool {
-  if (!args.empty()) {
+  if (args.empty()) {
     error_stream << "ERROR: No input file specified.\n";
     return false;
   }
