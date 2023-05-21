@@ -15,7 +15,7 @@ message(STATUS "Project '${PROJECT_NAME}', version: '${project_version}'")
 
 option(COCKTAIL_OPT_BUILD_UNITTESTS "Build all cocktail unittests" ON)
 option(COCKTAIL_OPT_BUILD_TOOLS "Build cocktail execute tools" ON)
-option(COCKTAIL_OPT_BUILD_EXPERIMENTAL "Build cocktail experimental implementation" OFF)
+option(COCKTAIL_OPT_BUILD_EXPERIMENTAL "Build cocktail experimental implementation" ON)
 
 # temp define: https://discourse.llvm.org/t/python-api-problem/945
 add_compile_options(-fno-rtti)

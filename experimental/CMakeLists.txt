@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.6)
 
-# project(
-#   cocktail_experimental
-#   LANGUAGES C CXX
-# )
+project(
+  cocktail_experimental
+  LANGUAGES C CXX
+)
 
 set(BISON_FILE ${CMAKE_CURRENT_SOURCE_DIR}/syntax.ypp)
 set(FLEX_FILE ${CMAKE_CURRENT_SOURCE_DIR}/syntax.lpp)
