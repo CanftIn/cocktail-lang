@@ -12,7 +12,7 @@ find_package(FLEX REQUIRED)
 find_package(BISON REQUIRED)
 
 BISON_TARGET(Parser ${BISON_FILE} ${CMAKE_CURRENT_BINARY_DIR}/syntax.tab.cc
-                    DEFINES_FILE ${CMAKE_CURRENT_BINARY_DIR}/syntax.tab.h)
+                    DEFINES_FILE ${CMAKE_CURRENT_BINARY_DIR}/syntax.tab.h VERBOSE)
 FLEX_TARGET(Scanner ${FLEX_FILE} ${CMAKE_CURRENT_BINARY_DIR}/syntax.yy.cc)
 
 ADD_FLEX_BISON_DEPENDENCY(Scanner Parser)
