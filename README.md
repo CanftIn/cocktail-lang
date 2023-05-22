@@ -10,7 +10,9 @@ To be an intergrated programming language of C++. As a step by step implementing
 
 depends on LLVM, only testing in Ubuntu yet. 
 
-**required command:** `apt-get install cmake g++ clang libgtest-dev libgmock-dev make valgrind libbenchmark-dev llvm-15-dev`
+**required command:** 
+
+`sudo apt-get install cmake g++ clang bison flex libgtest-dev libgmock-dev make valgrind libbenchmark-dev llvm-15-dev`
 
 ```bash
 > mkdir build
@@ -19,3 +21,7 @@ depends on LLVM, only testing in Ubuntu yet.
 > make -j$(nproc)
 > ctest -j$(nproc)
 ```
+
+# Basic grammar examples
+
+preview in folder: [TestCase](/unittests/TestCase)
