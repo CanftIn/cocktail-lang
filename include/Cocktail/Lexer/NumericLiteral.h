@@ -39,7 +39,7 @@ class NumericLiteralToken::Parser {
     return literal.radix_point == static_cast<int>(literal.Text().size());
   }
 
-  enum class CheckResult {
+  enum CheckResult {
     Valid,
     RecoverableError,
     UnrecoverableError,
