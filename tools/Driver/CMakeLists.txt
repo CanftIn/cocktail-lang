@@ -1,8 +1,5 @@
 cmake_minimum_required(VERSION 3.6)
 
-find_program(CMAKE_MEMORYCHECK_COMMAND valgrind)
-set(memcheck_command ${CMAKE_MEMORYCHECK_COMMAND} ${CMAKE_MEMORYCHECK_COMMAND_OPTIONS} --error-exitcode=1 --leak-check=full)
-
 file(GLOB DRIVER_LIST *.cc)
 
 foreach(FILE_PATH ${DRIVER_LIST})
@@ -10,4 +7,4 @@ foreach(FILE_PATH ${DRIVER_LIST})
   message(STATUS "driver files found: ${FILE_NAME}.cc")
   add_executable(cocktail_driver ${FILE_NAME}.cc)
   target_link_libraries(cocktail_driver cocktail)
-  endforeach()
+endforeach()
