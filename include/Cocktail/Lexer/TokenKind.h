@@ -23,38 +23,36 @@ class TokenKind {
 
   TokenKind() = delete;
 
-  auto operator==(const TokenKind& rhs) const -> bool {
-    return kind_value == rhs.kind_value;
+  friend auto operator==(const TokenKind& lhs, const TokenKind& rhs) -> bool {
+    return lhs.kind_value == rhs.kind_value;
   }
 
-  auto operator!=(const TokenKind& rhs) const -> bool {
-    return kind_value != rhs.kind_value;
+  friend auto operator!=(const TokenKind& lhs, const TokenKind& rhs) -> bool {
+    return lhs.kind_value != rhs.kind_value;
   }
 
-  auto Name() const -> llvm::StringRef;
+  [[nodiscard]] auto Name() const -> llvm::StringRef;
 
-  auto IsSymbol() const -> bool;
+  [[nodiscard]] auto IsKeyword() const -> bool;
 
-  auto IsGroupingSymbol() const -> bool;
+  [[nodiscard]] auto IsSymbol() const -> bool;
 
-  auto GetOpeningSymbol() const -> TokenKind;
+  [[nodiscard]] auto IsGroupingSymbol() const -> bool;
 
-  auto IsOpeningSymbol() const -> bool;
+  [[nodiscard]] auto IsOpeningSymbol() const -> bool;
 
-  auto GetClosingSymbol() const -> TokenKind;
+  [[nodiscard]] auto IsClosingSymbol() const -> bool;
 
-  auto IsClosingSymbol() const -> bool;
+  [[nodiscard]] auto GetOpeningSymbol() const -> TokenKind;
 
-  auto IsKeyword() const -> bool;
+  [[nodiscard]] auto GetClosingSymbol() const -> TokenKind;
 
-  auto GetFixedSpelling() const -> llvm::StringRef;
+  [[nodiscard]] auto GetFixedSpelling() const -> llvm::StringRef;
 
-  constexpr operator int() const {
-    return static_cast<int>(kind_value);
-  }
+  constexpr operator KindEnum() const { return kind_value; }
 
  private:
-  constexpr TokenKind(KindEnum kind_value) : kind_value(kind_value) {}
+  constexpr explicit TokenKind(KindEnum kind_value) : kind_value(kind_value) {}
 
   KindEnum kind_value;
 };

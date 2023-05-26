@@ -2,11 +2,17 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iterator>
 #include <string>
 
+#include "Cocktail/Diagnostics/DiagnosticEmitter.h"
+#include "Cocktail/Lexer/CharacterSet.h"
+#include "Cocktail/Lexer/NumericLiteral.h"
+#include "Cocktail/Lexer/TokenKind.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/StringSwitch.h"
+#include "llvm/ADT/Twine.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/Format.h"
 #include "llvm/Support/FormatVariadic.h"
@@ -14,69 +20,81 @@
 
 namespace Cocktail {
 
-static auto TakeLeadingIntegerLiteral(llvm::StringRef source_text)
-    -> llvm::StringRef {
-  return source_text.take_while([](char c) { return llvm::isDigit(c); });
-}
+struct TrailingComment : SimpleDiagnostic<TrailingComment> {
+  static constexpr llvm::StringLiteral ShortName = "syntax-comments";
+  static constexpr llvm::StringLiteral Message =
+      "Trailing comments are not permitted.";
+};
 
-struct UnmatchedClosing {
+struct NoWhitespaceAfterCommentIntroducer
+    : SimpleDiagnostic<NoWhitespaceAfterCommentIntroducer> {
+  static constexpr llvm::StringLiteral ShortName = "syntax-comments";
+  static constexpr llvm::StringLiteral Message =
+      "Whitespace is required after '//'.";
+};
+
+struct UnmatchedClosing : SimpleDiagnostic<UnmatchedClosing> {
   static constexpr llvm::StringLiteral ShortName = "syntax-balanced-delimiters";
   static constexpr llvm::StringLiteral Message =
       "Closing symbol without a corresponding opening symbol";
-
-  struct Substitutions {};
-  static auto Format(const Substitutions&) -> std::string {
-    return Message.str();
-  }
 };
 
-struct MismatchedClosing {
+struct MismatchedClosing : SimpleDiagnostic<MismatchedClosing> {
   static constexpr llvm::StringLiteral ShortName = "syntax-balanced-delimiters";
   static constexpr llvm::StringLiteral Message =
       "Closing symbol does not match most recent opening symbol";
-
-  struct Substitutions {};
-  static auto Format(const Substitutions&) -> std::string {
-    return Message.str();
-  }
 };
 
-struct UnrecognizedCharacters {
+struct UnrecognizedCharacters : SimpleDiagnostic<UnrecognizedCharacters> {
   static constexpr llvm::StringLiteral ShortName =
       "syntax-unrecognized-characters";
   static constexpr llvm::StringLiteral Message =
       "Encountered unrecognized characters while parsing";
-
-  struct Substitutions {};
-  static auto Format(const Substitutions&) -> std::string {
-    return Message.str();
-  }
 };
 
 class TokenizedBuffer::Lexer {
   TokenizedBuffer& buffer;
+  DiagnosticEmitter& emitter;
+
   Line current_line;
   LineInfo* current_line_info;
+
   int current_column = 0;
   bool set_indent = false;
 
   llvm::SmallVector<Token, 8> open_groups;
 
  public:
-  Lexer(TokenizedBuffer& buffer)
+  Lexer(TokenizedBuffer& buffer, DiagnosticEmitter& emitter)
       : buffer(buffer),
+        emitter(emitter),
         current_line(buffer.AddLine({0, 0, 0})),
         current_line_info(&buffer.GetLineInfo(current_line)) {}
 
+  class LexResult {
+    bool formed_token;
+    explicit LexResult(bool formed_token) : formed_token(formed_token) {}
+
+   public:
+    LexResult(Token /*unused*/) : LexResult(true) {}
+
+    static auto NoMatch() -> LexResult { return LexResult(false); }
+
+    explicit operator bool() const { return formed_token; }
+  };
+
   auto SkipWhitespace(llvm::StringRef& source_text) -> bool {
     while (!source_text.empty()) {
-      if (source_text.startswith("//") && !set_indent) {
-        if (source_text.startswith("///")) {
-          current_line_info->indent = current_column;
-          set_indent = true;
-          buffer.AddToken({.kind = TokenKind::DocComment(),
-                           .token_line = current_line,
-                           .column = current_column});
+      if (source_text.startswith("//")) {
+        // Any comment must be the only non-whitespace on the line.
+        if (set_indent) {
+          emitter.EmitError<TrailingComment>();
+          buffer.has_errors = true;
+        }
+        // The introducer '//' must be followed by whitespace or EOF.
+        if (source_text.size() > 2 && !IsSpace(source_text[2])) {
+          emitter.EmitError<NoWhitespaceAfterCommentIntroducer>();
+          buffer.has_errors = true;
         }
         while (!source_text.empty() && source_text.front() != '\n') {
           ++current_column;
@@ -108,49 +126,86 @@ class TokenizedBuffer::Lexer {
           continue;
 
         default:
+          assert(!IsSpace(source_text.front()));
           return true;
       }
     }
 
-    assert(source_text.empty() && "Cannot reach here w/o finishing the text!");
+    assert(source_text.empty() &&
+           "Cannot reach here without finishing the text!");
     current_line_info->length = current_column;
     return false;
   }
 
-  auto LexIntegerLiteral(llvm::StringRef& source_text) -> bool {
-    llvm::StringRef int_text = TakeLeadingIntegerLiteral(source_text);
-    if (int_text.empty()) {
-      return false;
-    }
-    llvm::APInt int_value;
-    if (int_text.getAsInteger(0, int_value)) {
-      return false;
+  auto LexNumericLiteral(llvm::StringRef& source_text) -> LexResult {
+    llvm::Optional<NumericLiteralToken> literal =
+        NumericLiteralToken::Lex(source_text);
+    if (!literal) {
+      return LexResult::NoMatch();
     }
 
     int int_column = current_column;
-    current_column += int_text.size();
-    source_text = source_text.drop_front(int_text.size());
+    int token_size = literal->Text().size();
+    current_column += token_size;
+    source_text = source_text.drop_front(token_size);
 
     if (!set_indent) {
       current_line_info->indent = int_column;
       set_indent = true;
     }
-    auto token = buffer.AddToken({.kind = TokenKind::IntegerLiteral(),
-                                  .token_line = current_line,
-                                  .column = int_column});
-    buffer.GetTokenInfo(token).literal_index = buffer.int_literals.size();
-    buffer.int_literals.push_back(std::move(int_value));
-    return true;
+
+    NumericLiteralToken::Parser literal_parser(emitter, *literal);
+
+    switch (literal_parser.Check()) {
+      case NumericLiteralToken::Parser::UnrecoverableError: {
+        auto token = buffer.AddToken(TokenInfo{
+            .kind = TokenKind::Error(),
+            .token_line = current_line,
+            .column = int_column,
+            .error_length = token_size,
+        });
+        buffer.has_errors = true;
+        return token;
+      }
+      case NumericLiteralToken::Parser::RecoverableError:
+        buffer.has_errors = true;
+        break;
+      case NumericLiteralToken::Parser::Valid:
+        break;
+    }
+
+    if (literal_parser.IsInteger()) {
+      auto token = buffer.AddToken({
+          .kind = TokenKind::IntegerLiteral(),
+          .token_line = current_line,
+          .column = int_column,
+      });
+      buffer.GetTokenInfo(token).literal_index =
+          buffer.literal_int_storage.size();
+      buffer.literal_int_storage.push_back(literal_parser.GetMantissa());
+      return token;
+    } else {
+      auto token = buffer.AddToken({
+          .kind = TokenKind::RealLiteral(),
+          .token_line = current_line,
+          .column = int_column,
+      });
+      buffer.GetTokenInfo(token).literal_index =
+          buffer.literal_int_storage.size();
+      buffer.literal_int_storage.push_back(literal_parser.GetMantissa());
+      buffer.literal_int_storage.push_back(literal_parser.GetExponent());
+      return token;
+    }
   }
 
-  auto LexSymbolToken(llvm::StringRef& source_text) -> bool {
+  auto LexSymbolToken(llvm::StringRef& source_text) -> LexResult {
     TokenKind kind = llvm::StringSwitch<TokenKind>(source_text)
 #define COCKTAIL_SYMBOL_TOKEN(Name, Spelling) \
   .StartsWith(Spelling, TokenKind::Name())
 #include "Cocktail/Lexer/TokenRegistry.def"
                          .Default(TokenKind::Error());
     if (kind == TokenKind::Error()) {
-      return false;
+      return LexResult::NoMatch();
     }
 
     if (!set_indent) {
@@ -167,11 +222,11 @@ class TokenizedBuffer::Lexer {
 
     if (kind.IsOpeningSymbol()) {
       open_groups.push_back(token);
-      return true;
+      return token;
     }
 
     if (!kind.IsClosingSymbol()) {
-      return true;
+      return token;
     }
 
     TokenInfo& closing_token_info = buffer.GetTokenInfo(token);
@@ -180,14 +235,16 @@ class TokenizedBuffer::Lexer {
       closing_token_info.kind = TokenKind::Error();
       closing_token_info.error_length = kind.GetFixedSpelling().size();
       buffer.has_errors = true;
-      return true;
+
+      emitter.EmitError<UnmatchedClosing>();
+      return token;
     }
 
     Token opening_token = open_groups.pop_back_val();
     TokenInfo& opening_token_info = buffer.GetTokenInfo(opening_token);
     opening_token_info.closing_token = token;
     closing_token_info.opening_token = opening_token;
-    return true;
+    return token;
   }
 
   auto CloseInvalidOpenGroups(TokenKind kind) -> void {
@@ -199,11 +256,12 @@ class TokenizedBuffer::Lexer {
       Token opening_token = open_groups.back();
       TokenKind opening_kind = buffer.GetTokenInfo(opening_token).kind;
       if (kind == opening_kind.GetClosingSymbol()) {
-        break;
+        return;
       }
 
       open_groups.pop_back();
       buffer.has_errors = true;
+      emitter.EmitError<MismatchedClosing>();
 
       Token closing_token =
           buffer.AddToken({.kind = opening_kind.GetClosingSymbol(),
@@ -226,9 +284,9 @@ class TokenizedBuffer::Lexer {
     return insert_result.first->second;
   }
 
-  auto LexKeywordOrIdentifier(llvm::StringRef& source_text) -> bool {
-    if (!llvm::isAlpha(source_text.front()) && source_text.front() != '_') {
-      return false;
+  auto LexKeywordOrIdentifier(llvm::StringRef& source_text) -> LexResult {
+    if (!IsAlpha(source_text.front()) && source_text.front() != '_') {
+      return LexResult::NoMatch();
     }
 
     if (!set_indent) {
@@ -236,8 +294,8 @@ class TokenizedBuffer::Lexer {
       set_indent = true;
     }
 
-    llvm::StringRef identifier_text = source_text.take_while(
-        [](char c) { return llvm::isAlnum(c) || c == '_'; });
+    llvm::StringRef identifier_text =
+        source_text.take_while([](char c) { return IsAlnum(c) || c == '_'; });
     assert(!identifier_text.empty() && "Must have at least one character!");
     int identifier_column = current_column;
     current_column += identifier_text.size();
@@ -249,34 +307,30 @@ class TokenizedBuffer::Lexer {
 #include "Cocktail/Lexer/TokenRegistry.def"
                          .Default(TokenKind::Error());
     if (kind != TokenKind::Error()) {
-      buffer.AddToken({.kind = kind,
-                       .token_line = current_line,
-                       .column = identifier_column});
-      return true;
+      return buffer.AddToken({.kind = kind,
+                              .token_line = current_line,
+                              .column = identifier_column});
     }
 
-    buffer.AddToken({.kind = TokenKind::Identifier(),
-                     .token_line = current_line,
-                     .column = identifier_column,
-                     .id = GetOrCreateIdentifier(identifier_text)});
-    return true;
+    return buffer.AddToken({.kind = TokenKind::Identifier(),
+                            .token_line = current_line,
+                            .column = identifier_column,
+                            .id = GetOrCreateIdentifier(identifier_text)});
   }
 
-  auto LexError(llvm::StringRef& source_text) -> void {
+  auto LexError(llvm::StringRef& source_text) -> LexResult {
     llvm::StringRef error_text = source_text.take_while([](char c) {
-      if (llvm::isAlnum(c)) {
+      if (IsAlnum(c)) {
         return false;
       }
       switch (c) {
         case '_':
-          return false;
         case '\t':
-          return false;
         case '\n':
           return false;
       }
       return llvm::StringSwitch<bool>(llvm::StringRef(&c, 1))
-#define COCKTAIL_SYMBOL_TOKEN(Name, Spelling) .Case(Spelling, false)
+#define COCKTAIL_SYMBOL_TOKEN(Name, Spelling) .StartsWith(Spelling, false)
 #include "Cocktail/Lexer/TokenRegistry.def"
           .Default(true);
     });
@@ -291,6 +345,7 @@ class TokenizedBuffer::Lexer {
                   .token_line = current_line,
                   .column = current_column,
                   .error_length = static_cast<int32_t>(error_text.size())});
+    // TODO: convert to diagnostics
     llvm::errs() << "ERROR: Line " << buffer.GetLineNumber(token) << ", Column "
                  << buffer.GetColumnNumber(token)
                  << ": Unrecognized characters!\n";
@@ -298,25 +353,28 @@ class TokenizedBuffer::Lexer {
     current_column += error_text.size();
     source_text = source_text.drop_front(error_text.size());
     buffer.has_errors = true;
+    return token;
   }
 };
 
-auto TokenizedBuffer::Lex(SourceBuffer& source) -> TokenizedBuffer {
+auto TokenizedBuffer::Lex(SourceBuffer& source, DiagnosticEmitter& emitter)
+    -> TokenizedBuffer {
   TokenizedBuffer buffer(source);
-  Lexer lexer(buffer);
+  Lexer lexer(buffer, emitter);
 
-  llvm::StringRef source_text = source.text();
+  llvm::StringRef source_text = source.Text();
   while (lexer.SkipWhitespace(source_text)) {
-    if (lexer.LexSymbolToken(source_text)) {
-      continue;
+    Lexer::LexResult result = lexer.LexSymbolToken(source_text);
+    if (!result) {
+      result = lexer.LexKeywordOrIdentifier(source_text);
     }
-    if (lexer.LexKeywordOrIdentifier(source_text)) {
-      continue;
+    if (!result) {
+      result = lexer.LexNumericLiteral(source_text);
     }
-    if (lexer.LexIntegerLiteral(source_text)) {
-      continue;
+    if (!result) {
+      result = lexer.LexError(source_text);
     }
-    lexer.LexError(source_text);
+    assert(result && "No token was lexed.");
   }
 
   lexer.CloseInvalidOpenGroups(TokenKind::Error());
@@ -340,29 +398,26 @@ auto TokenizedBuffer::GetColumnNumber(Token token) const -> int {
 }
 
 auto TokenizedBuffer::GetTokenText(Token token) const -> llvm::StringRef {
-  auto& token_info = GetTokenInfo(token);
+  const auto& token_info = GetTokenInfo(token);
   llvm::StringRef fixed_spelling = token_info.kind.GetFixedSpelling();
   if (!fixed_spelling.empty()) {
     return fixed_spelling;
   }
 
   if (token_info.kind == TokenKind::Error()) {
-    auto& line_info = GetLineInfo(token_info.token_line);
+    const auto& line_info = GetLineInfo(token_info.token_line);
     int64_t token_start = line_info.start + token_info.column;
-    return source->text().substr(token_start, token_info.error_length);
+    return source->Text().substr(token_start, token_info.error_length);
   }
 
-  if (token_info.kind == TokenKind::DocComment()) {
-    auto& line_info = GetLineInfo(token_info.token_line);
+  if (token_info.kind == TokenKind::IntegerLiteral() ||
+      token_info.kind == TokenKind::RealLiteral()) {
+    const auto& line_info = GetLineInfo(token_info.token_line);
     int64_t token_start = line_info.start + token_info.column;
-    int64_t token_stop = line_info.start + line_info.length;
-    return source->text().slice(token_start, token_stop);
-  }
-
-  if (token_info.kind == TokenKind::IntegerLiteral()) {
-    auto& line_info = GetLineInfo(token_info.token_line);
-    int64_t token_start = line_info.start + token_info.column;
-    return TakeLeadingIntegerLiteral(source->text().substr(token_start));
+    llvm::Optional<NumericLiteralToken> relaxed_token =
+        NumericLiteralToken::Lex(source->Text().substr(token_start));
+    assert(relaxed_token && "Could not reform numeric literal token.");
+    return relaxed_token->Text();
   }
 
   assert(token_info.kind == TokenKind::Identifier() &&
@@ -371,22 +426,36 @@ auto TokenizedBuffer::GetTokenText(Token token) const -> llvm::StringRef {
 }
 
 auto TokenizedBuffer::GetIdentifier(Token token) const -> Identifier {
-  auto& token_info = GetTokenInfo(token);
+  const auto& token_info = GetTokenInfo(token);
   assert(token_info.kind == TokenKind::Identifier() &&
          "The token must be an identifier!");
   return token_info.id;
 }
 
-auto TokenizedBuffer::GetIntegerLiteral(Token token) const -> llvm::APInt {
-  auto& token_info = GetTokenInfo(token);
+auto TokenizedBuffer::GetIntegerLiteral(Token token) const
+    -> const llvm::APInt& {
+  const auto& token_info = GetTokenInfo(token);
   assert(token_info.kind == TokenKind::IntegerLiteral() &&
          "The token must be an integer literal!");
-  return int_literals[token_info.literal_index];
+  return literal_int_storage[token_info.literal_index];
+}
+
+auto TokenizedBuffer::GetRealLiteral(Token token) const -> RealLiteralValue {
+  const auto& token_info = GetTokenInfo(token);
+  assert(token_info.kind == TokenKind::RealLiteral() &&
+         "The token must be a real literal!");
+
+  const auto& line_info = GetLineInfo(token_info.token_line);
+  int64_t token_start = line_info.start + token_info.column;
+  char second_char = source->Text()[token_start + 1];
+  bool is_decimal = second_char != 'x' && second_char != 'b';
+
+  return RealLiteralValue(this, token_info.literal_index, is_decimal);
 }
 
 auto TokenizedBuffer::GetMatchedClosingToken(Token opening_token) const
     -> Token {
-  auto& opening_token_info = GetTokenInfo(opening_token);
+  const auto& opening_token_info = GetTokenInfo(opening_token);
   assert(opening_token_info.kind.IsOpeningSymbol() &&
          "The token must be an opening group symbol!");
   return opening_token_info.closing_token;
@@ -394,7 +463,7 @@ auto TokenizedBuffer::GetMatchedClosingToken(Token opening_token) const
 
 auto TokenizedBuffer::GetMatchedOpeningToken(Token closing_token) const
     -> Token {
-  auto& closing_token_info = GetTokenInfo(closing_token);
+  const auto& closing_token_info = GetTokenInfo(closing_token);
   assert(closing_token_info.kind.IsClosingSymbol() &&
          "The token must be a closing group symbol!");
   return closing_token_info.opening_token;
@@ -425,13 +494,23 @@ auto TokenizedBuffer::PrintWidths::Widen(const PrintWidths& widths) -> void {
   indent = std::max(indent, widths.indent);
 }
 
+static auto ComputeDecimalPrintedWidth(int number) -> int {
+  assert(number >= 0 && "Negative numbers are not supported.");
+  if (number == 0) {
+    return 1;
+  }
+
+  return static_cast<int>(std::log10(number)) + 1;
+}
+
 auto TokenizedBuffer::GetTokenPrintWidths(Token token) const -> PrintWidths {
   PrintWidths widths = {};
-  widths.index = std::log10(token_infos.size()) + 1;
+  widths.index = ComputeDecimalPrintedWidth(token_infos.size());
   widths.kind = GetKind(token).Name().size();
-  widths.line = std::log10(GetLineNumber(token)) + 1;
-  widths.column = std::log10(GetColumnNumber(token)) + 1;
-  widths.indent = std::log10(GetIndentColumnNumber(GetLine(token))) + 1;
+  widths.line = ComputeDecimalPrintedWidth(GetLineNumber(token));
+  widths.column = ComputeDecimalPrintedWidth(GetColumnNumber(token));
+  widths.indent =
+      ComputeDecimalPrintedWidth(GetIndentColumnNumber(GetLine(token)));
   return widths;
 }
 
@@ -441,7 +520,7 @@ auto TokenizedBuffer::Print(llvm::raw_ostream& output_stream) const -> void {
   }
 
   PrintWidths widths = {};
-  widths.index = std::log10(token_infos.size()) + 1;
+  widths.index = ComputeDecimalPrintedWidth(token_infos.size());
   for (Token token : Tokens()) {
     widths.Widen(GetTokenPrintWidths(token));
   }
@@ -461,12 +540,9 @@ auto TokenizedBuffer::PrintToken(llvm::raw_ostream& output_stream, Token token,
                                  PrintWidths widths) const -> void {
   widths.Widen(GetTokenPrintWidths(token));
   int token_index = token.index;
-  auto& token_info = GetTokenInfo(token);
+  const auto& token_info = GetTokenInfo(token);
   llvm::StringRef token_text = GetTokenText(token);
 
-  // Output the main chunk using one format string. We have to do the
-  // justification manually in order to use the dynamically computed widths
-  // and get the quotes included.
   output_stream << llvm::formatv(
       "token: { index: {0}, kind: {1}, line: {2}, column: {3}, indent: {4}, "
       "spelling: '{5}'",
@@ -505,7 +581,7 @@ auto TokenizedBuffer::GetLineInfo(Line line) const -> const LineInfo& {
 
 auto TokenizedBuffer::AddLine(LineInfo info) -> Line {
   line_infos.push_back(info);
-  return Line(line_infos.size() - 1);
+  return Line(static_cast<int>(line_infos.size()) - 1);
 }
 
 auto TokenizedBuffer::GetTokenInfo(Token token) -> TokenInfo& {
@@ -518,7 +594,7 @@ auto TokenizedBuffer::GetTokenInfo(Token token) const -> const TokenInfo& {
 
 auto TokenizedBuffer::AddToken(TokenInfo info) -> Token {
   token_infos.push_back(info);
-  return Token(token_infos.size() - 1);
+  return Token(static_cast<int>(token_infos.size()) - 1);
 }
 
 }  // namespace Cocktail

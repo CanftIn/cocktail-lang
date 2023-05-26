@@ -8,14 +8,17 @@
 #include "../Lexer/TokenizedBuffer.t.h"
 #include "Cocktail/Lexer/TokenizedBuffer.h"
 #include "Cocktail/Parser/ParseNodeKind.h"
+#include "Cocktail/Diagnostics/DiagnosticEmitter.h"
 #include "Parse.t.h"
+#include "llvm/ADT/Sequence.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/YAMLParser.h"
 
 namespace {
 
 using namespace Cocktail;
-using namespace Cocktail::Testing;
+using Cocktail::Testing::IsKeyValueScalars;
+using Cocktail::Testing::MatchParseTreeNodes;
 using ::testing::Eq;
 using ::testing::Ne;
 using ::testing::NotNull;
@@ -24,6 +27,7 @@ using ::testing::StrEq;
 struct ParseTreeTest : ::testing::Test {
   std::forward_list<SourceBuffer> source_storage;
   std::forward_list<TokenizedBuffer> token_storage;
+  DiagnosticEmitter emitter = NullDiagnosticEmitter();
 
   auto GetSourceBuffer(llvm::Twine t) -> SourceBuffer& {
     source_storage.push_front(
@@ -32,21 +36,21 @@ struct ParseTreeTest : ::testing::Test {
   }
 
   auto GetTokenizedBuffer(llvm::Twine t) -> TokenizedBuffer& {
-    token_storage.push_front(TokenizedBuffer::Lex(GetSourceBuffer(t)));
+    token_storage.push_front(TokenizedBuffer::Lex(GetSourceBuffer(t), emitter));
     return token_storage.front();
   }
 };
 
 TEST_F(ParseTreeTest, Empty) {
   TokenizedBuffer tokens = GetTokenizedBuffer("");
-  ParseTree tree = ParseTree::Parse(tokens);
+  ParseTree tree = ParseTree::Parse(tokens, emitter);
   EXPECT_FALSE(tree.HasErrors());
   EXPECT_THAT(tree.Postorder().begin(), Eq(tree.Postorder().end()));
 }
 
 TEST_F(ParseTreeTest, EmptyDeclaration) {
   TokenizedBuffer tokens = GetTokenizedBuffer(";");
-  ParseTree tree = ParseTree::Parse(tokens);
+  ParseTree tree = ParseTree::Parse(tokens, emitter);
   EXPECT_FALSE(tree.HasErrors());
   auto it = tree.Postorder().begin();
   auto end = tree.Postorder().end();
@@ -68,7 +72,7 @@ TEST_F(ParseTreeTest, EmptyDeclaration) {
 
 TEST_F(ParseTreeTest, BasicFunctionDeclaration) {
   TokenizedBuffer tokens = GetTokenizedBuffer("fn F();");
-  ParseTree tree = ParseTree::Parse(tokens);
+  ParseTree tree = ParseTree::Parse(tokens, emitter);
   EXPECT_FALSE(tree.HasErrors());
   EXPECT_THAT(
       tree, MatchParseTreeNodes(
@@ -86,7 +90,7 @@ TEST_F(ParseTreeTest, BasicFunctionDefinition) {
   TokenizedBuffer tokens = GetTokenizedBuffer(
       "fn F() {\n"
       "}");
-  ParseTree tree = ParseTree::Parse(tokens);
+  ParseTree tree = ParseTree::Parse(tokens, emitter);
   EXPECT_FALSE(tree.HasErrors());
   EXPECT_THAT(
       tree, MatchParseTreeNodes(
@@ -107,7 +111,7 @@ TEST_F(ParseTreeTest, FunctionDefinitionWithNestedBlocks) {
       "    {{}}\n"
       "  }\n"
       "}");
-  ParseTree tree = ParseTree::Parse(tokens);
+  ParseTree tree = ParseTree::Parse(tokens, emitter);
   EXPECT_FALSE(tree.HasErrors());
   EXPECT_THAT(
       tree,
@@ -135,7 +139,7 @@ TEST_F(ParseTreeTest, FunctionDefinitionWithIdenifierInStatements) {
       "fn F() {\n"
       "  bar\n"
       "}");
-  ParseTree tree = ParseTree::Parse(tokens);
+  ParseTree tree = ParseTree::Parse(tokens, emitter);
   EXPECT_TRUE(tree.HasErrors());
   EXPECT_THAT(
       tree,
@@ -154,7 +158,7 @@ TEST_F(ParseTreeTest, FunctionDefinitionWithIdenifierInNestedBlock) {
       "fn F() {\n"
       "  {bar}\n"
       "}");
-  ParseTree tree = ParseTree::Parse(tokens);
+  ParseTree tree = ParseTree::Parse(tokens, emitter);
   EXPECT_TRUE(tree.HasErrors());
   EXPECT_THAT(
       tree,

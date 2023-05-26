@@ -1,3 +1,11 @@
+// prior of including the header are:
+//
+// - `COCKTAIL_TOKEN`
+//   - `COCKTAIL_SYMBOL_TOKEN`
+//     - `COCKTAIL_OPENING_GROUP_SYMBOL_TOKEN`
+//     - `COCKTAIL_CLOSING_GROUP_SYMBOL_TOKEN`
+//   - `COCKTAIL_KEYWORD_TOKEN`
+
 #ifndef COCKTAIL_TOKEN
 #define COCKTAIL_TOKEN(Name)
 #endif
@@ -137,7 +145,7 @@ COCKTAIL_KEYWORD_TOKEN(XorKeyword,        "xor")
 
 COCKTAIL_TOKEN(Identifier)
 COCKTAIL_TOKEN(IntegerLiteral)
-COCKTAIL_TOKEN(DocComment)
+COCKTAIL_TOKEN(RealLiteral)
 COCKTAIL_TOKEN(Error)
 
 #undef COCKTAIL_TOKEN

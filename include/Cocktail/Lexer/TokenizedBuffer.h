@@ -4,8 +4,9 @@
 #include <cstdint>
 #include <iterator>
 
+#include "Cocktail/Diagnostics/DiagnosticEmitter.h"
 #include "Cocktail/Lexer/TokenKind.h"
-#include "Cocktail/SourceBuffer.h"
+#include "Cocktail/Source/SourceBuffer.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/Optional.h"
@@ -21,14 +22,26 @@ class TokenizedBuffer {
   class Token {
    public:
     Token() = default;
-    // clang-format off
-    auto operator==(const Token& rhs) const -> bool { return index == rhs.index; }
-    auto operator!=(const Token& rhs) const -> bool { return index != rhs.index; }
-    auto operator<(const Token& rhs) const -> bool { return index < rhs.index; }
-    auto operator<=(const Token& rhs) const -> bool { return index <= rhs.index; }
-    auto operator>(const Token& rhs) const -> bool { return index > rhs.index; }
-    auto operator>=(const Token& rhs) const -> bool { return index >= rhs.index; }
-    // clang-format on
+
+    friend auto operator==(const Token& lhs, const Token& rhs) -> bool {
+      return lhs.index == rhs.index;
+    }
+    friend auto operator!=(const Token& lhs, const Token& rhs) -> bool {
+      return lhs.index != rhs.index;
+    }
+    friend auto operator<(const Token& lhs, const Token& rhs) -> bool {
+      return lhs.index < rhs.index;
+    }
+    friend auto operator<=(const Token& lhs, const Token& rhs) -> bool {
+      return lhs.index <= rhs.index;
+    }
+    friend auto operator>(const Token& lhs, const Token& rhs) -> bool {
+      return lhs.index > rhs.index;
+    }
+    friend auto operator>=(const Token& lhs, const Token& rhs) -> bool {
+      return lhs.index >= rhs.index;
+    }
+
    private:
     friend class TokenizedBuffer;
 
@@ -40,14 +53,26 @@ class TokenizedBuffer {
   class Line {
    public:
     Line() = default;
-    // clang-format off
-    auto operator==(const Line& rhs) const -> bool { return index == rhs.index; }
-    auto operator!=(const Line& rhs) const -> bool { return index != rhs.index; }
-    auto operator<(const Line& rhs) const -> bool { return index < rhs.index; }
-    auto operator<=(const Line& rhs) const -> bool { return index <= rhs.index; }
-    auto operator>(const Line& rhs) const -> bool { return index > rhs.index; }
-    auto operator>=(const Line& rhs) const -> bool { return index >= rhs.index; }
-    // clang-format on
+
+    friend auto operator==(const Line& lhs, const Line& rhs) -> bool {
+      return lhs.index == rhs.index;
+    }
+    friend auto operator!=(const Line& lhs, const Line& rhs) -> bool {
+      return lhs.index != rhs.index;
+    }
+    friend auto operator<(const Line& lhs, const Line& rhs) -> bool {
+      return lhs.index < rhs.index;
+    }
+    friend auto operator<=(const Line& lhs, const Line& rhs) -> bool {
+      return lhs.index <= rhs.index;
+    }
+    friend auto operator>(const Line& lhs, const Line& rhs) -> bool {
+      return lhs.index > rhs.index;
+    }
+    friend auto operator>=(const Line& lhs, const Line& rhs) -> bool {
+      return lhs.index >= rhs.index;
+    }
+
    private:
     friend class TokenizedBuffer;
 
@@ -59,10 +84,16 @@ class TokenizedBuffer {
   class Identifier {
    public:
     Identifier() = default;
-    // clang-format off
-    auto operator==(const Identifier& rhs) const -> bool { return index == rhs.index; }
-    auto operator!=(const Identifier& rhs) const -> bool { return index != rhs.index; }
-    // clang-format on
+
+    friend auto operator==(const Identifier& lhs, const Identifier& rhs)
+        -> bool {
+      return lhs.index == rhs.index;
+    }
+    friend auto operator!=(const Identifier& lhs, const Identifier& rhs)
+        -> bool {
+      return lhs.index != rhs.index;
+    }
+
    private:
     friend class TokenizedBuffer;
 
@@ -110,45 +141,75 @@ class TokenizedBuffer {
     Token token;
   };
 
-  static auto Lex(SourceBuffer& source) -> TokenizedBuffer;
+  class RealLiteralValue {
+   public:
+    auto Mantissa() const -> const llvm::APInt& {
+      return buffer->literal_int_storage[literal_index];
+    }
 
-  auto Tokens() const -> llvm::iterator_range<TokenIterator> {
+    auto Exponent() const -> const llvm::APInt& {
+      return buffer->literal_int_storage[literal_index + 1];
+    }
+
+    auto IsDecimal() const -> bool { return is_decimal; }
+
+   private:
+    friend class TokenizedBuffer;
+
+    RealLiteralValue(const TokenizedBuffer* buffer, int32_t literal_index,
+                     bool is_decimal)
+        : buffer(buffer),
+          literal_index(literal_index),
+          is_decimal(is_decimal) {}
+
+    const TokenizedBuffer* buffer;
+    int32_t literal_index;
+    bool is_decimal;
+  };
+
+  static auto Lex(SourceBuffer& source, DiagnosticEmitter& emitter)
+      -> TokenizedBuffer;
+
+  [[nodiscard]] auto HasErrors() const -> bool { return has_errors; }
+
+  [[nodiscard]] auto Tokens() const -> llvm::iterator_range<TokenIterator> {
     return llvm::make_range(TokenIterator(Token(0)),
                             TokenIterator(Token(token_infos.size())));
   }
 
-  auto HasErrors() const -> bool { return has_errors; }
+  [[nodiscard]] auto Size() const -> int { return token_infos.size(); }
 
-  auto Size() const -> int { return token_infos.size(); }
+  [[nodiscard]] auto GetKind(Token token) const -> TokenKind;
+  [[nodiscard]] auto GetLine(Token token) const -> Line;
 
-  auto GetKind(Token token) const -> TokenKind;
-  auto GetLine(Token token) const -> Line;
-
-  auto GetLineNumber(Token token) const -> int;
+  [[nodiscard]] auto GetLineNumber(Token token) const -> int;
 
   // Returns the 1-based line number.
-  auto GetLineNumber(Line line) const -> int;
+  [[nodiscard]] auto GetLineNumber(Line line) const -> int;
 
-  auto GetColumnNumber(Token token) const -> int;
+  [[nodiscard]] auto GetColumnNumber(Token token) const -> int;
 
-  auto GetTokenText(Token token) const -> llvm::StringRef;
+  [[nodiscard]] auto GetTokenText(Token token) const -> llvm::StringRef;
 
-  auto GetIdentifier(Token token) const -> Identifier;
+  [[nodiscard]] auto GetIdentifier(Token token) const -> Identifier;
 
   // Returns the value of an `IntegerLiteral()` token.
-  auto GetIntegerLiteral(Token token) const -> llvm::APInt;
+  [[nodiscard]] auto GetIntegerLiteral(Token token) const -> const llvm::APInt&;
 
-  auto GetMatchedClosingToken(Token opening_token) const -> Token;
+  // Returns the value of a `RealLiteral()` token.
+  [[nodiscard]] auto GetRealLiteral(Token token) const -> RealLiteralValue;
 
-  auto GetMatchedOpeningToken(Token closing_token) const -> Token;
+  [[nodiscard]] auto GetMatchedClosingToken(Token opening_token) const -> Token;
 
-  auto IsRecoveryToken(Token token) const -> bool;
+  [[nodiscard]] auto GetMatchedOpeningToken(Token closing_token) const -> Token;
+
+  [[nodiscard]] auto IsRecoveryToken(Token token) const -> bool;
 
   // Returns the 1-based indentation column number.
-  auto GetIndentColumnNumber(Line line) const -> int;
+  [[nodiscard]] auto GetIndentColumnNumber(Line line) const -> int;
 
   // Returns the text for an identifier.
-  auto GetIdentifierText(Identifier id) const -> llvm::StringRef;
+  [[nodiscard]] auto GetIdentifierText(Identifier id) const -> llvm::StringRef;
 
   // Prints a description of the tokenized stream to the provided `raw_ostream`.
   //
@@ -226,12 +287,12 @@ class TokenizedBuffer {
   explicit TokenizedBuffer(SourceBuffer& source) : source(&source) {}
 
   auto GetLineInfo(Line line) -> LineInfo&;
-  auto GetLineInfo(Line line) const -> const LineInfo&;
+  [[nodiscard]] auto GetLineInfo(Line line) const -> const LineInfo&;
   auto AddLine(LineInfo info) -> Line;
   auto GetTokenInfo(Token token) -> TokenInfo&;
-  auto GetTokenInfo(Token token) const -> const TokenInfo&;
+  [[nodiscard]] auto GetTokenInfo(Token token) const -> const TokenInfo&;
   auto AddToken(TokenInfo info) -> Token;
-  auto GetTokenPrintWidths(Token token) const -> PrintWidths;
+  [[nodiscard]] auto GetTokenPrintWidths(Token token) const -> PrintWidths;
   auto PrintToken(llvm::raw_ostream& output_stream, Token token,
                   PrintWidths widths) const -> void;
 
@@ -243,7 +304,7 @@ class TokenizedBuffer {
 
   llvm::SmallVector<IdentifierInfo, 16> identifier_infos;
 
-  llvm::SmallVector<llvm::APInt, 16> int_literals;
+  llvm::SmallVector<llvm::APInt, 16> literal_int_storage;
 
   llvm::DenseMap<llvm::StringRef, Identifier> identifier_map;
 

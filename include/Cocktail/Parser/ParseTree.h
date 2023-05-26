@@ -18,7 +18,7 @@ class ParseTree {
   class PostorderIterator;
   class SiblingIterator;
 
-  static auto Parse(TokenizedBuffer& tokens) -> ParseTree;
+  static auto Parse(TokenizedBuffer& tokens, DiagnosticEmitter& emitter) -> ParseTree;
 
   [[nodiscard]] auto HasErrors() const -> bool { return has_errors; }
 

@@ -11,16 +11,11 @@ namespace Cocktail {
 
 class ParseTree::Parser {
  public:
-  static auto Parse(TokenizedBuffer& tokens) -> ParseTree;
+  static auto Parse(TokenizedBuffer& tokens, DiagnosticEmitter& de)
+      -> ParseTree;
 
  private:
   struct SubtreeStart;
-
-  ParseTree& tree;
-  TokenizedBuffer& tokens;
-
-  TokenizedBuffer::TokenIterator position;
-  TokenizedBuffer::TokenIterator end;
 
   explicit Parser(ParseTree& tree_arg, TokenizedBuffer& tokens_arg)
       : tree(tree_arg),
@@ -59,6 +54,12 @@ class ParseTree::Parser {
   auto ParseEmptyDeclaration() -> Node;
 
   auto ParseDeclaration() -> llvm::Optional<Node>;
+
+  ParseTree& tree;
+  TokenizedBuffer& tokens;
+
+  TokenizedBuffer::TokenIterator position;
+  TokenizedBuffer::TokenIterator end;
 };
 
 }  // namespace Cocktail

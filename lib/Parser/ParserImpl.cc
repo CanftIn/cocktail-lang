@@ -11,7 +11,8 @@
 
 namespace Cocktail {
 
-auto ParseTree::Parser::Parse(TokenizedBuffer& tokens) -> ParseTree {
+auto ParseTree::Parser::Parse(TokenizedBuffer& tokens,
+                              DiagnosticEmitter& /*unused*/) -> ParseTree {
   ParseTree tree(tokens);
   tree.node_impls.reserve(tokens.Size());
 
@@ -78,7 +79,7 @@ auto ParseTree::Parser::StartSubtree() -> SubtreeStart {
 auto ParseTree::Parser::AddNode(ParseNodeKind n_kind,
                                 TokenizedBuffer::Token token,
                                 SubtreeStart& start, bool has_error) -> Node {
-  int tree_stop_size = tree.node_impls.size() + 1;
+  int tree_stop_size = static_cast<int>(tree.node_impls.size()) + 1;
   int subtree_size = tree_stop_size - start.tree_size;
 
   Node n(tree.node_impls.size());
@@ -187,11 +188,6 @@ auto ParseTree::Parser::ParseCodeBlock() -> Node {
 
   for (;;) {
     switch (tokens.GetKind(*position)) {
-      case TokenKind::CloseCurlyBrace():
-        break;
-      case TokenKind::OpenCurlyBrace():
-        ParseCodeBlock();
-        continue;
       default:
         llvm::errs() << "ERROR: unexpected token before the close of the "
                         "function definition on line "
@@ -200,6 +196,14 @@ auto ParseTree::Parser::ParseCodeBlock() -> Node {
         has_errors = true;
         position = TokenizedBuffer::TokenIterator(
             tokens.GetMatchedClosingToken(open_curly));
+        LLVM_FALLTHROUGH;
+
+      case TokenKind::CloseCurlyBrace():
+        break;
+
+      case TokenKind::OpenCurlyBrace():
+        ParseCodeBlock();
+        continue;
     }
     break;
   }
@@ -295,6 +299,8 @@ auto ParseTree::Parser::ParseDeclaration() -> llvm::Optional<Node> {
       return ParseFunctionDeclaration();
     case TokenKind::Semi():
       return ParseEmptyDeclaration();
+    default:
+      break;
   }
 
   llvm::errs() << "ERROR: Unrecognized declaration introducer '"
