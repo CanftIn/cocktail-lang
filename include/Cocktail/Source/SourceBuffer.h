@@ -1,5 +1,5 @@
-#ifndef COCKTAIL_SOURCE_BUFFER_H
-#define COCKTAIL_SOURCE_BUFFER_H
+#ifndef COCKTAIL_SOURCE_SOURCE_BUFFER_H
+#define COCKTAIL_SOURCE_SOURCE_BUFFER_H
 
 #include <string>
 #include <utility>
@@ -26,9 +26,9 @@ class SourceBuffer {
 
   ~SourceBuffer();
 
-  [[nodiscard]] auto filename() const -> llvm::StringRef { return filename_; }
+  [[nodiscard]] auto Filename() const -> llvm::StringRef { return filename; }
 
-  [[nodiscard]] auto text() const -> llvm::StringRef { return text_; }
+  [[nodiscard]] auto Text() const -> llvm::StringRef { return text; }
 
  private:
   enum class ContentMode {
@@ -42,12 +42,12 @@ class SourceBuffer {
   // Constructor for owned content.
   explicit SourceBuffer(std::string filename, std::string text);
 
-  ContentMode content_mode_;
-  std::string filename_;
-  std::string text_storage_;
-  llvm::StringRef text_;
+  ContentMode content_mode;
+  std::string filename;
+  std::string text_storage;
+  llvm::StringRef text;
 };
 
 }  // namespace Cocktail
 
-#endif  // COCKTAIL_SOURCE_BUFFER_H
+#endif  // COCKTAIL_SOURCE_SOURCE_BUFFER_H

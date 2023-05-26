@@ -10,18 +10,22 @@ namespace Cocktail {
 
 class ParseNodeKind {
  public:
-#define COCKTAIL_PARSE_NODE_KIND(Name) \
-  static constexpr auto Name() -> ParseNodeKind { return KindEnum::Name; }
+#define COCKTAIL_PARSE_NODE_KIND(Name)            \
+  static constexpr auto Name() -> ParseNodeKind { \
+    return ParseNodeKind(KindEnum::Name);         \
+  }
 #include "Cocktail/Parser/ParseNodeKind.def"
 
   ParseNodeKind() = delete;
 
-  auto operator==(const ParseNodeKind& rhs) const -> bool {
-    return kind == rhs.kind;
+  friend auto operator==(const ParseNodeKind& lhs, const ParseNodeKind& rhs)
+      -> bool {
+    return lhs.kind == rhs.kind;
   }
 
-  auto operator!=(const ParseNodeKind& rhs) const -> bool {
-    return kind != rhs.kind;
+  friend auto operator!=(const ParseNodeKind& lhs, const ParseNodeKind& rhs)
+      -> bool {
+    return lhs.kind != rhs.kind;
   }
 
   [[nodiscard]] auto GetName() const -> llvm::StringRef;
@@ -32,9 +36,9 @@ class ParseNodeKind {
 #include "Cocktail/Parser/ParseNodeKind.def"
   };
 
-  constexpr ParseNodeKind(KindEnum k) : kind(k) {}
+  constexpr explicit ParseNodeKind(KindEnum k) : kind(k) {}
 
-  explicit constexpr operator KindEnum() const { return kind; }
+  constexpr operator KindEnum() const { return kind; }
 
   KindEnum kind;
 };

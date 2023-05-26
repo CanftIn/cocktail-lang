@@ -10,6 +10,15 @@ auto TokenKind::Name() const -> llvm::StringRef {
   return Names[static_cast<int>(kind_value)];
 }
 
+auto TokenKind::IsKeyword() const -> bool {
+  static constexpr bool Table[] = {
+#define COCKTAIL_TOKEN(TokenName) false,
+#define COCKTAIL_KEYWORD_TOKEN(TokenName, Spelling) true,
+#include "Cocktail/Lexer/TokenRegistry.def"
+  };
+  return Table[static_cast<int>(kind_value)];
+}
+
 auto TokenKind::IsSymbol() const -> bool {
   static constexpr bool Table[] = {
 #define COCKTAIL_TOKEN(TokenName) false,
@@ -41,6 +50,16 @@ auto TokenKind::IsOpeningSymbol() const -> bool {
   return Table[static_cast<int>(kind_value)];
 }
 
+auto TokenKind::IsClosingSymbol() const -> bool {
+  static constexpr bool Table[] = {
+#define COCKTAIL_TOKEN(TokenName) false,
+#define COCKTAIL_CLOSING_GROUP_SYMBOL_TOKEN(TokenName, Spelling, OpeningName) \
+  true,
+#include "Cocktail/Lexer/TokenRegistry.def"
+  };
+  return Table[static_cast<int>(kind_value)];
+}
+
 auto TokenKind::GetOpeningSymbol() const -> TokenKind {
   static constexpr TokenKind Table[] = {
 #define COCKTAIL_TOKEN(TokenName) Error(),
@@ -53,16 +72,6 @@ auto TokenKind::GetOpeningSymbol() const -> TokenKind {
   return result;
 }
 
-auto TokenKind::IsClosingSymbol() const -> bool {
-  static constexpr bool Table[] = {
-#define COCKTAIL_TOKEN(TokenName) false,
-#define COCKTAIL_CLOSING_GROUP_SYMBOL_TOKEN(TokenName, Spelling, OpeningName) \
-  true,
-#include "Cocktail/Lexer/TokenRegistry.def"
-  };
-  return Table[static_cast<int>(kind_value)];
-}
-
 auto TokenKind::GetClosingSymbol() const -> TokenKind {
   static constexpr TokenKind Table[] = {
 #define COCKTAIL_TOKEN(TokenName) Error(),
@@ -73,15 +82,6 @@ auto TokenKind::GetClosingSymbol() const -> TokenKind {
   auto result = Table[static_cast<int>(kind_value)];
   assert(result != Error() && "Only closing symbols are valid!");
   return result;
-}
-
-auto TokenKind::IsKeyword() const -> bool {
-  static constexpr bool Table[] = {
-#define COCKTAIL_TOKEN(TokenName) false,
-#define COCKTAIL_KEYWORD_TOKEN(TokenName, Spelling) true,
-#include "Cocktail/Lexer/TokenRegistry.def"
-  };
-  return Table[static_cast<int>(kind_value)];
 }
 
 auto TokenKind::GetFixedSpelling() const -> llvm::StringRef {

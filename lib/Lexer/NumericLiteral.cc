@@ -2,6 +2,7 @@
 
 #include <bitset>
 
+#include "Cocktail/Lexer/CharacterSet.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/Support/FormatVariadic.h"
 
@@ -83,8 +84,6 @@ struct WrongRealLiteralExponent {
 
 }  // namespace
 
-static bool isLower(char c) { return 'a' <= c && c <= 'z'; }
-
 auto NumericLiteralToken::Lex(llvm::StringRef source_text)
     -> llvm::Optional<NumericLiteralToken> {
   NumericLiteralToken result;
@@ -97,11 +96,11 @@ auto NumericLiteralToken::Lex(llvm::StringRef source_text)
   bool seen_radix_point = false;
   bool seen_potential_exponent = false;
 
-  int i = 1, n = source_text.size();
-  for (; i != n; ++i) {
+  int i = 1;
+  for (int n = source_text.size(); i != n; ++i) {
     char c = source_text[i];
-    if (llvm::isAlnum(c) || c == '_') {
-      if (isLower(c) && seen_radix_point && !seen_plus_minus) {
+    if (IsAlnum(c) || c == '_') {
+      if (IsLower(c) && seen_radix_point && !seen_plus_minus) {
         result.exponent = i;
         seen_potential_exponent = true;
       }
@@ -195,7 +194,7 @@ auto NumericLiteralToken::Parser::GetExponent() -> llvm::APInt {
     exponent = ParseInteger(exponent_part, 10, exponent_needs_cleaning);
 
     if (exponent.isSignBitSet() || exponent.getBitWidth() < 64) {
-      exponent = exponent.zext(std::max(64u, exponent.getBitWidth() + 1));
+      exponent = exponent.zext(std::max(64U, exponent.getBitWidth() + 1));
     }
 
     if (exponent_is_negative) {
@@ -288,7 +287,7 @@ auto NumericLiteralToken::Parser::CheckDigitSeparatorPlacement(
 
   int stride = (radix == 10 ? 4 : 5);
   int remaining_digit_separators = num_digit_separators;
-  auto pos = text.end();
+  const auto* pos = text.end();
   while (pos - text.begin() >= stride) {
     pos -= stride;
     if (*pos != '_') {

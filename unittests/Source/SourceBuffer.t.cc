@@ -1,4 +1,4 @@
-#include "Cocktail/SourceBuffer.h"
+#include "Cocktail/Source/SourceBuffer.h"
 
 #include <gtest/gtest.h>
 
@@ -13,16 +13,16 @@ using namespace Cocktail;
 
 TEST(SourceBufferTest, StringRep) {
   auto buffer = SourceBuffer::CreateFromText(llvm::Twine("Hello") + " World");
-  EXPECT_EQ("/text", buffer->filename());
-  EXPECT_EQ("Hello World", buffer->text());
+  EXPECT_EQ("/text", buffer->Filename());
+  EXPECT_EQ("Hello World", buffer->Text());
 }
 
 TEST(SourceBufferText, StringRepWithFilename) {
   // Give a custom filename.
   auto buffer =
       SourceBuffer::CreateFromText("Hello World Again!", "/custom/text");
-  EXPECT_EQ("/custom/text", buffer->filename());
-  EXPECT_EQ("Hello World Again!", buffer->text());
+  EXPECT_EQ("/custom/text", buffer->Filename());
+  EXPECT_EQ("Hello World Again!", buffer->Text());
 }
 
 auto CreateTestFile(llvm::StringRef text) -> std::string {
@@ -51,8 +51,8 @@ TEST(SourceBufferTest, FileRep) {
 
   SourceBuffer& buffer = *expected_buffer;
 
-  EXPECT_EQ(test_file_path, buffer.filename());
-  EXPECT_EQ("Hello World", buffer.text());
+  EXPECT_EQ(test_file_path, buffer.Filename());
+  EXPECT_EQ("Hello World", buffer.Text());
 }
 
 TEST(SourceBufferTest, FileRepEmpty) {
@@ -64,8 +64,8 @@ TEST(SourceBufferTest, FileRepEmpty) {
 
   SourceBuffer& buffer = *expected_buffer;
 
-  EXPECT_EQ(test_file_path, buffer.filename());
-  EXPECT_EQ("", buffer.text());
+  EXPECT_EQ(test_file_path, buffer.Filename());
+  EXPECT_EQ("", buffer.Text());
 }
 
 }  // namespace

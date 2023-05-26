@@ -1,9 +1,10 @@
 #include "Cocktail/Lexer/TokenKind.h"
 
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
+
 #include <cstring>
 
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
 #include "llvm/ADT/StringRef.h"
 
 namespace {
@@ -11,11 +12,8 @@ namespace {
 using namespace Cocktail;
 using ::testing::MatchesRegex;
 
-// We restrict symbols to punctuation characters that are expected to be widely
-// available on modern keyboards used for programming.
 constexpr llvm::StringLiteral SymbolRegex = "[][{}!@#%^&*()/?\\|;:.,<>=+~-]+";
 
-// We restrict keywords to be lowercase ASCII letters and underscores.
 constexpr llvm::StringLiteral KeywordRegex = "[a-z_]+";
 
 #define COCKTAIL_TOKEN(TokenName)                             \
@@ -72,9 +70,6 @@ constexpr llvm::StringLiteral KeywordRegex = "[a-z_]+";
   }
 #include "Cocktail/Lexer/TokenRegistry.def"
 
-// Verify that the symbol tokens are sorted from longest to shortest. This is
-// important to ensure that simply in-order testing will identify tokens
-// following the max-munch rule.
 TEST(TokenKindTest, SymbolsInDescendingLength) {
   int previous_length = INT_MAX;
 #define COCKTAIL_SYMBOL_TOKEN(TokenName, Spelling)                      \

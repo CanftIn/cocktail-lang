@@ -3,7 +3,7 @@
 #include "Cocktail/Diagnostics/DiagnosticEmitter.h"
 #include "Cocktail/Lexer/TokenizedBuffer.h"
 #include "Cocktail/Parser/ParseTree.h"
-#include "Cocktail/SourceBuffer.h"
+#include "Cocktail/Source/SourceBuffer.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringRef.h"
@@ -70,12 +70,12 @@ auto Driver::RunHelpSubcommand(llvm::ArrayRef<llvm::StringRef> args) -> bool {
   };
 
   int max_subcommand_width = 0;
-  for (auto subcommand_and_help : SubcommandsAndHelp) {
+  for (const auto* subcommand_and_help : SubcommandsAndHelp) {
     max_subcommand_width = std::max(
         max_subcommand_width, static_cast<int>(subcommand_and_help[0].size()));
   }
 
-  for (auto subcommand_and_help : SubcommandsAndHelp) {
+  for (const auto* subcommand_and_help : SubcommandsAndHelp) {
     llvm::StringRef subcommand_text = subcommand_and_help[0];
     llvm::StringRef help_text = subcommand_and_help[1];
     output_stream << "  "
@@ -111,7 +111,8 @@ auto Driver::RunDumpTokensSubcommand(llvm::ArrayRef<llvm::StringRef> args)
     return false;
   }
 
-  auto tokenized_source = TokenizedBuffer::Lex(*source);
+  auto tokenized_source =
+      TokenizedBuffer::Lex(*source, ConsoleDiagnosticEmitter());
   tokenized_source.Print(output_stream);
   return !tokenized_source.HasErrors();
 }
@@ -141,8 +142,10 @@ auto Driver::RunDumpParseTreeSubcommand(llvm::ArrayRef<llvm::StringRef> args)
     return false;
   }
 
-  auto tokenized_source = TokenizedBuffer::Lex(*source);
-  auto parse_tree = ParseTree::Parse(tokenized_source);
+  auto tokenized_source =
+      TokenizedBuffer::Lex(*source, ConsoleDiagnosticEmitter());
+  auto parse_tree =
+      ParseTree::Parse(tokenized_source, ConsoleDiagnosticEmitter());
   parse_tree.Print(output_stream);
   return !tokenized_source.HasErrors() && !parse_tree.HasErrors();
 }
