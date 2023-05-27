@@ -107,7 +107,7 @@ auto NumericLiteralToken::Lex(llvm::StringRef source_text)
       continue;
     }
 
-    if (c == '.' && i + 1 != n && llvm::isAlnum(source_text[i + 1]) &&
+    if (c == '.' && i + 1 != n && IsAlnum(source_text[i + 1]) &&
         !seen_radix_point) {
       result.radix_point = i;
       seen_radix_point = true;
@@ -116,7 +116,7 @@ auto NumericLiteralToken::Lex(llvm::StringRef source_text)
 
     if ((c == '+' || c == '-') && seen_potential_exponent &&
         result.exponent == i - 1 && i + 1 != n &&
-        llvm::isAlnum(source_text[i + 1])) {
+        IsAlnum(source_text[i + 1])) {
       assert(!seen_plus_minus && "should only consume one + or -");
       seen_plus_minus = true;
       continue;
