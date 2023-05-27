@@ -1,8 +1,6 @@
 #ifndef COCKTAIL_LEXER_CHARACTER_SET_H
 #define COCKTAIL_LEXER_CHARACTER_SET_H
 
-#include <llvm-15/llvm/ADT/StringExtras.h>
-
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringRef.h"
 
