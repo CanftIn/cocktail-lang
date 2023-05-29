@@ -88,7 +88,7 @@ auto NumericLiteralToken::Lex(llvm::StringRef source_text)
     -> llvm::Optional<NumericLiteralToken> {
   NumericLiteralToken result;
 
-  if (source_text.empty() || !llvm::isDigit(source_text.front())) {
+  if (source_text.empty() || !IsDecimalDigit(source_text.front())) {
     return llvm::None;
   }
 

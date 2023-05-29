@@ -70,7 +70,6 @@ class NumericLiteralToken::Parser {
   auto CheckFractionalPart() -> bool;
   auto CheckExponentPart() -> bool;
 
- private:
   DiagnosticEmitter& emitter;
   NumericLiteralToken literal;
 
