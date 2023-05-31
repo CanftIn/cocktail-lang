@@ -25,6 +25,8 @@ include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
 include(CTest)
+enable_testing()
+find_package(GTest REQUIRED CONFIG)
 
 include_directories(include)
 
@@ -44,7 +46,7 @@ include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
 file(GLOB_RECURSE LIB_PATH
-    ./lib/*.cc
+    ./lib/Common/*.cc
     ./lib/Source/*.cc
     ./lib/Lexer/*.cc
     ./lib/Parser/*.cc
@@ -57,6 +59,7 @@ add_library(${STATIC_LIB_NAME} STATIC ${cocktail_SRCS})
 target_link_libraries(${STATIC_LIB_NAME}
   LLVMSupport
   LLVMOption
+  GTest::gtest
 )
 
 if (COCKTAIL_OPT_BUILD_UNITTESTS)

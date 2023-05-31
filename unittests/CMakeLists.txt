@@ -5,9 +5,6 @@ set(memcheck_command ${CMAKE_MEMORYCHECK_COMMAND} ${CMAKE_MEMORYCHECK_COMMAND_OP
 
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND})
 
-enable_testing()
-find_package(GTest REQUIRED CONFIG)
-
 add_subdirectory(Common)
 add_subdirectory(Lexer)
 add_subdirectory(Parser)
