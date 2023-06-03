@@ -1,5 +1,5 @@
-#ifndef COCKTAIL_COMMON_YAML_T_H
-#define COCKTAIL_COMMON_YAML_T_H
+#ifndef COCKTAIL_TESTING_YAML_T_H
+#define COCKTAIL_TESTING_YAML_T_H
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -75,4 +75,4 @@ MATCHER_P(Scalar, value,
 
 }  // namespace Cocktail::Testing::Yaml
 
-#endif  // COCKTAIL_COMMON_YAML_T_H
+#endif  // COCKTAIL_TESTING_YAML_T_H
