@@ -4,24 +4,32 @@
 #include <gtest/gtest.h>
 
 #include "Cocktail/Diagnostics/DiagnosticEmitter.h"
+#include "Cocktail/Testing/Lexer.t.h"
 
 namespace {
 
 using namespace Cocktail;
 
 struct StringLiteralTest : ::testing::Test {
-  auto Lex(llvm::StringRef text) -> StringLiteralToken {
-    llvm::Optional<StringLiteralToken> result = StringLiteralToken::Lex(text);
+  StringLiteralTest() : error_tracker(ConsoleDiagnosticConsumer()) {}
+
+  ErrorTrackingDiagnosticConsumer error_tracker;
+
+  auto Lex(llvm::StringRef text) -> LexedStringLiteral {
+    llvm::Optional<LexedStringLiteral> result = LexedStringLiteral::Lex(text);
     assert(result);
     EXPECT_EQ(result->Text(), text);
     return *result;
   }
 
-  auto Parse(llvm::StringRef text) -> StringLiteralToken::ExpandedValue {
-    StringLiteralToken token = Lex(text);
-    return token.ComputeValue(ConsoleDiagnosticEmitter());
+  auto Parse(llvm::StringRef text) -> std::string {
+    LexedStringLiteral token = Lex(text);
+    Testing::SingleTokenDiagnosticTranslator translator(text);
+    DiagnosticEmitter<const char*> emitter(translator, error_tracker);
+    return token.ComputeValue(emitter);
   }
 };
+
 
 TEST_F(StringLiteralTest, StringLiteralBounds) {
   llvm::StringLiteral valid[] = {
@@ -71,7 +79,7 @@ TEST_F(StringLiteralTest, StringLiteralBounds) {
   };
 
   for (llvm::StringLiteral test : valid) {
-    llvm::Optional<StringLiteralToken> result = StringLiteralToken::Lex(test);
+    llvm::Optional<LexedStringLiteral> result = LexedStringLiteral::Lex(test);
     EXPECT_TRUE(result.hasValue());
     if (result) {
       EXPECT_EQ(result->Text(), test);
@@ -95,7 +103,7 @@ TEST_F(StringLiteralTest, StringLiteralBounds) {
   };
 
   for (llvm::StringLiteral test : invalid) {
-    EXPECT_FALSE(StringLiteralToken::Lex(test).hasValue());
+    EXPECT_FALSE(LexedStringLiteral::Lex(test).hasValue());
   }
 }
 

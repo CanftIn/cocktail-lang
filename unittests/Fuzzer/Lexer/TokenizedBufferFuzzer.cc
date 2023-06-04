@@ -2,6 +2,7 @@
 #include <cstring>
 
 #include "Cocktail/Diagnostics/DiagnosticEmitter.h"
+#include "Cocktail/Diagnostics/NullDiagnostics.h"
 #include "Cocktail/Lexer/TokenizedBuffer.h"
 #include "llvm/ADT/StringRef.h"
 
@@ -29,9 +30,7 @@ extern "C" auto LLVMFuzzerTestOneInput(const unsigned char* data,
   auto source = SourceBuffer::CreateFromText(
       llvm::StringRef(reinterpret_cast<const char*>(data), size), filename);
 
-  DiagnosticEmitter emitter = NullDiagnosticEmitter();
-
-  auto buffer = TokenizedBuffer::Lex(*source, emitter);
+  auto buffer = TokenizedBuffer::Lex(*source, NullDiagnosticConsumer());
   if (buffer.HasErrors()) {
     return 0;
   }
