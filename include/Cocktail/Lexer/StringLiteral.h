@@ -10,24 +10,20 @@
 
 namespace Cocktail {
 
-struct StringLiteralToken {
+struct LexedStringLiteral {
  public:
-  auto Text() const -> llvm::StringRef { return text; }
+  [[nodiscard]] auto Text() const -> llvm::StringRef { return text; }
 
-  auto IsMultiLine() const -> bool { return multi_line; }
+  [[nodiscard]] auto IsMultiLine() const -> bool { return multi_line; }
 
   static auto Lex(llvm::StringRef source_text)
-      -> llvm::Optional<StringLiteralToken>;
+      -> llvm::Optional<LexedStringLiteral>;
 
-  struct ExpandedValue {
-    std::string result;
-    bool has_errors;
-  };
-
-  auto ComputeValue(DiagnosticEmitter& emitter) const -> ExpandedValue;
+  auto ComputeValue(DiagnosticEmitter<const char*>& emitter) const
+      -> std::string;
 
  private:
-  StringLiteralToken(llvm::StringRef text, llvm::StringRef content,
+  LexedStringLiteral(llvm::StringRef text, llvm::StringRef content,
                      int hash_level, bool multi_line)
       : text(text),
         content(content),

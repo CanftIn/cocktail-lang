@@ -3,6 +3,7 @@
 
 #include <iterator>
 
+#include "Cocktail/Diagnostics/DiagnosticEmitter.h"
 #include "Cocktail/Lexer/TokenizedBuffer.h"
 #include "Cocktail/Parser/ParseNodeKind.h"
 #include "llvm/ADT/SmallVector.h"
@@ -18,7 +19,8 @@ class ParseTree {
   class PostorderIterator;
   class SiblingIterator;
 
-  static auto Parse(TokenizedBuffer& tokens, DiagnosticEmitter& emitter) -> ParseTree;
+  static auto Parse(TokenizedBuffer& tokens, DiagnosticConsumer& consumer)
+      -> ParseTree;
 
   [[nodiscard]] auto HasErrors() const -> bool { return has_errors; }
 
@@ -153,9 +155,8 @@ class ParseTree::PostorderIterator
 };
 
 class ParseTree::SiblingIterator
-    : public llvm::iterator_facade_base<SiblingIterator,
-                                        std::forward_iterator_tag, Node,
-                                        int, Node*, Node> {
+    : public llvm::iterator_facade_base<
+          SiblingIterator, std::forward_iterator_tag, Node, int, Node*, Node> {
  public:
   SiblingIterator() = default;
 

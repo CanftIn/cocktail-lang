@@ -13,62 +13,126 @@
 namespace Cocktail {
 
 struct Diagnostic {
+  enum Level {
+    Warning,
+    Error,
+  };
+
+  struct Location {
+    std::string file_name;
+    int32_t line_number;
+    int32_t column_number;
+  };
+
+  Level level;
+  Location location;
   llvm::StringRef short_name;
   std::string message;
 };
 
+// Receives diagnostics as they are emitted.
+class DiagnosticConsumer {
+ public:
+  virtual ~DiagnosticConsumer() = default;
+
+  virtual auto HandleDiagnostic(const Diagnostic& diagnostic) -> void = 0;
+};
+
+// translate some representation of a location
+template <typename LocationT>
+class DiagnosticLocationTranslator {
+ public:
+  virtual ~DiagnosticLocationTranslator() = default;
+
+  [[nodiscard]] virtual auto GetLocation(LocationT loc)
+      -> Diagnostic::Location = 0;
+};
+
+template <typename LocationT>
 class DiagnosticEmitter {
  public:
-  using Callback = std::function<void(const Diagnostic&)>;
+  explicit DiagnosticEmitter(
+      DiagnosticLocationTranslator<LocationT>& translator,
+      DiagnosticConsumer& consumer)
+      : translator(&translator), consumer(&consumer) {}
 
-  explicit DiagnosticEmitter(Callback callback)
-      : callback(std::move(callback)) {}
   ~DiagnosticEmitter() = default;
 
   template <typename DiagnosticT>
-  void EmitError(typename DiagnosticT::Substitutions substitutions) {
-    callback({.short_name = DiagnosticT::ShortName,
-              .message = DiagnosticT::Format(substitutions)});
+  auto EmitError(LocationT location, DiagnosticT diag) -> void {
+    consumer->HandleDiagnostic({
+        .level = Diagnostic::Error,
+        .location = translator->GetLocation(location),
+        .short_name = DiagnosticT::ShortName,
+        .message = diag.Format(),
+    });
   }
 
   template <typename DiagnosticT>
-  auto EmitError() -> std::enable_if_t<
-      std::is_empty_v<typename DiagnosticT::Substitutions>> {
-    EmitError<DiagnosticT>({});
+  auto EmitError(LocationT location)
+      -> std::enable_if_t<std::is_empty_v<DiagnosticT>> {
+    EmitError<DiagnosticT>(location, {});
   }
 
   template <typename DiagnosticT>
-  void EmitWarningIf(
-      llvm::function_ref<bool(typename DiagnosticT::Substitutions&)> f) {
-    typename DiagnosticT::Substitutions substitutions;
-    if (f(substitutions)) {
-      callback({.short_name = DiagnosticT::ShortName,
-                .message = DiagnosticT::Format(substitutions)});
+  auto EmitWarningIf(LocationT location,
+                     llvm::function_ref<bool(DiagnosticT&)> f) -> void {
+    DiagnosticT diag;
+    if (f(diag)) {
+      consumer->HandleDiagnostic({
+          .level = Diagnostic::Warning,
+          .location = translator->GetLocation(location),
+          .short_name = DiagnosticT::ShortName,
+          .message = diag.Format(),
+      });
     }
   }
 
  private:
-  Callback callback;
+  DiagnosticLocationTranslator<LocationT>* translator;
+  DiagnosticConsumer* consumer;
 };
 
-inline auto ConsoleDiagnosticEmitter() -> DiagnosticEmitter& {
-  static auto* emitter = new DiagnosticEmitter(
-      [](const Diagnostic& d) { llvm::errs() << d.message << "\n"; });
-  return *emitter;
-}
+inline auto ConsoleDiagnosticConsumer() -> DiagnosticConsumer& {
+  struct Consumer : DiagnosticConsumer {
+    auto HandleDiagnostic(const Diagnostic& diagnostic) -> void override {
+      if (!diagnostic.location.file_name.empty()) {
+        llvm::errs() << diagnostic.location.file_name << ":"
+                     << diagnostic.location.line_number << ":"
+                     << diagnostic.location.column_number << ": ";
+      }
 
-inline auto NullDiagnosticEmitter() -> DiagnosticEmitter& {
-  static auto* emitter = new DiagnosticEmitter([](const Diagnostic&) {});
-  return *emitter;
+      llvm::errs() << diagnostic.message << "\n";
+    }
+  };
+  static auto* consumer = new Consumer;
+  return *consumer;
 }
 
 // CRTP base class for diagnostics with no substitutions.
 template <typename Derived>
 struct SimpleDiagnostic {
-  struct Substitutions {};
-  static auto Format(const Substitutions&) -> std::string {
-    return Derived::Message.str();
+  static auto Format() -> std::string { return Derived::Message.str(); }
+};
+
+// track whether any errors have been produced. (Chain of Responsibility)
+class ErrorTrackingDiagnosticConsumer : public DiagnosticConsumer {
+ public:
+  explicit ErrorTrackingDiagnosticConsumer(DiagnosticConsumer& next_consumer)
+      : next_consumer(&next_consumer) {}
+
+  auto HandleDiagnostic(const Diagnostic& diagnostic) -> void override {
+    seen_error |= diagnostic.level == Diagnostic::Error;
+    next_consumer->HandleDiagnostic(diagnostic);
   }
+
+  auto SeenError() const -> bool { return seen_error; }
+
+  auto Reset() -> void { seen_error = false; }
+
+ private:
+  DiagnosticConsumer* next_consumer;
+  bool seen_error = false;
 };
 
 }  // namespace Cocktail

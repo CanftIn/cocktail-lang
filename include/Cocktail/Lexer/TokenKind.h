@@ -2,6 +2,7 @@
 #define COCKTAIL_LEXER_TOKEN_KIND_H
 
 #include <cstdint>
+#include <initializer_list>
 #include <iterator>
 
 #include "llvm/ADT/StringRef.h"
@@ -9,7 +10,7 @@
 namespace Cocktail {
 
 class TokenKind {
-  enum class KindEnum : int8_t {
+  enum class KindEnum : uint8_t {
 #define COCKTAIL_TOKEN(TokenName) TokenName,
 #include "Cocktail/Lexer/TokenRegistry.def"
   };
@@ -48,6 +49,16 @@ class TokenKind {
   [[nodiscard]] auto GetClosingSymbol() const -> TokenKind;
 
   [[nodiscard]] auto GetFixedSpelling() const -> llvm::StringRef;
+
+  [[nodiscard]] auto IsOneOf(std::initializer_list<TokenKind> kinds) const
+      -> bool {
+    for (TokenKind kind : kinds) {
+      if (*this == kind) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   constexpr operator KindEnum() const { return kind_value; }
 

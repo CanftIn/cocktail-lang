@@ -75,6 +75,7 @@ COCKTAIL_SYMBOL_TOKEN(Tilde,               "~")
 // clang-format on
 COCKTAIL_OPENING_GROUP_SYMBOL_TOKEN(OpenParen, "(", CloseParen)
 COCKTAIL_OPENING_GROUP_SYMBOL_TOKEN(OpenCurlyBrace, "{", CloseCurlyBrace)
+COCKTAIL_OPENING_GROUP_SYMBOL_TOKEN(OpenSquareBracket, "[", CloseSquareBracket)
 // clang-format off
 
 #undef COCKTAIL_OPENING_GROUP_SYMBOL_TOKEN
@@ -87,6 +88,7 @@ COCKTAIL_OPENING_GROUP_SYMBOL_TOKEN(OpenCurlyBrace, "{", CloseCurlyBrace)
 // clang-format on
 COCKTAIL_CLOSING_GROUP_SYMBOL_TOKEN(CloseParen, ")", OpenParen)
 COCKTAIL_CLOSING_GROUP_SYMBOL_TOKEN(CloseCurlyBrace, "}", OpenCurlyBrace)
+COCKTAIL_CLOSING_GROUP_SYMBOL_TOKEN(CloseSquareBracket, "]", OpenSquareBracket)
 // clang-format off
 
 #undef COCKTAIL_CLOSING_GROUP_SYMBOL_TOKEN
@@ -146,6 +148,8 @@ COCKTAIL_KEYWORD_TOKEN(XorKeyword,        "xor")
 COCKTAIL_TOKEN(Identifier)
 COCKTAIL_TOKEN(IntegerLiteral)
 COCKTAIL_TOKEN(RealLiteral)
+COCKTAIL_TOKEN(StringLiteral)
 COCKTAIL_TOKEN(Error)
+COCKTAIL_TOKEN(EndOfFile)
 
 #undef COCKTAIL_TOKEN

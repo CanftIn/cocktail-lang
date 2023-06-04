@@ -17,38 +17,48 @@
 
 namespace Cocktail {
 
+class TokenizedBuffer;
+
+namespace Internal {
+
+class TokenizedBufferToken {
+ public:
+  using Token = TokenizedBufferToken;
+
+  TokenizedBufferToken() = default;
+
+  friend auto operator==(const Token& lhs, const Token& rhs) -> bool {
+    return lhs.index == rhs.index;
+  }
+  friend auto operator!=(const Token& lhs, const Token& rhs) -> bool {
+    return lhs.index != rhs.index;
+  }
+  friend auto operator<(const Token& lhs, const Token& rhs) -> bool {
+    return lhs.index < rhs.index;
+  }
+  friend auto operator<=(const Token& lhs, const Token& rhs) -> bool {
+    return lhs.index <= rhs.index;
+  }
+  friend auto operator>(const Token& lhs, const Token& rhs) -> bool {
+    return lhs.index > rhs.index;
+  }
+  friend auto operator>=(const Token& lhs, const Token& rhs) -> bool {
+    return lhs.index >= rhs.index;
+  }
+
+ private:
+  friend TokenizedBuffer;
+
+  explicit TokenizedBufferToken(int index) : index(index) {}
+
+  int32_t index;
+};
+
+}  // namespace Internal
+
 class TokenizedBuffer {
  public:
-  class Token {
-   public:
-    Token() = default;
-
-    friend auto operator==(const Token& lhs, const Token& rhs) -> bool {
-      return lhs.index == rhs.index;
-    }
-    friend auto operator!=(const Token& lhs, const Token& rhs) -> bool {
-      return lhs.index != rhs.index;
-    }
-    friend auto operator<(const Token& lhs, const Token& rhs) -> bool {
-      return lhs.index < rhs.index;
-    }
-    friend auto operator<=(const Token& lhs, const Token& rhs) -> bool {
-      return lhs.index <= rhs.index;
-    }
-    friend auto operator>(const Token& lhs, const Token& rhs) -> bool {
-      return lhs.index > rhs.index;
-    }
-    friend auto operator>=(const Token& lhs, const Token& rhs) -> bool {
-      return lhs.index >= rhs.index;
-    }
-
-   private:
-    friend class TokenizedBuffer;
-
-    explicit Token(int index) : index(index) {}
-
-    int32_t index;
-  };
+  using Token = Internal::TokenizedBufferToken;
 
   class Line {
    public:
@@ -102,9 +112,10 @@ class TokenizedBuffer {
     int32_t index;
   };
 
+  // Random-access iterator
   class TokenIterator
       : public llvm::iterator_facade_base<
-            TokenIterator, std::random_access_iterator_tag, Token, int> {
+            TokenIterator, std::random_access_iterator_tag, const Token, int> {
    public:
     TokenIterator() = default;
 
@@ -119,8 +130,8 @@ class TokenizedBuffer {
     }
 
     auto operator*() const -> const Token& { return token; }
-    auto operator*() -> Token& { return token; }
 
+    using iterator_facade_base::operator-;
     auto operator-(const TokenIterator& rhs) const -> int {
       return token.index - rhs.token.index;
     }
@@ -143,15 +154,15 @@ class TokenizedBuffer {
 
   class RealLiteralValue {
    public:
-    auto Mantissa() const -> const llvm::APInt& {
+    [[nodiscard]] auto Mantissa() const -> const llvm::APInt& {
       return buffer->literal_int_storage[literal_index];
     }
 
-    auto Exponent() const -> const llvm::APInt& {
+    [[nodiscard]] auto Exponent() const -> const llvm::APInt& {
       return buffer->literal_int_storage[literal_index + 1];
     }
 
-    auto IsDecimal() const -> bool { return is_decimal; }
+    [[nodiscard]] auto IsDecimal() const -> bool { return is_decimal; }
 
    private:
     friend class TokenizedBuffer;
@@ -167,7 +178,19 @@ class TokenizedBuffer {
     bool is_decimal;
   };
 
-  static auto Lex(SourceBuffer& source, DiagnosticEmitter& emitter)
+  class TokenLocationTranslator
+      : public DiagnosticLocationTranslator<Internal::TokenizedBufferToken> {
+   public:
+    explicit TokenLocationTranslator(TokenizedBuffer& buffer)
+        : buffer(&buffer) {}
+
+    auto GetLocation(Token token) -> Diagnostic::Location override;
+
+   private:
+    TokenizedBuffer* buffer;
+  };
+
+  static auto Lex(SourceBuffer& source, DiagnosticConsumer& consumer)
       -> TokenizedBuffer;
 
   [[nodiscard]] auto HasErrors() const -> bool { return has_errors; }
@@ -193,15 +216,20 @@ class TokenizedBuffer {
 
   [[nodiscard]] auto GetIdentifier(Token token) const -> Identifier;
 
-  // Returns the value of an `IntegerLiteral()` token.
   [[nodiscard]] auto GetIntegerLiteral(Token token) const -> const llvm::APInt&;
 
-  // Returns the value of a `RealLiteral()` token.
   [[nodiscard]] auto GetRealLiteral(Token token) const -> RealLiteralValue;
+
+  [[nodiscard]] auto GetStringLiteral(Token token) const -> llvm::StringRef;
 
   [[nodiscard]] auto GetMatchedClosingToken(Token opening_token) const -> Token;
 
   [[nodiscard]] auto GetMatchedOpeningToken(Token closing_token) const -> Token;
+
+  // Returns whether the given token has leading whitespace.
+  [[nodiscard]] auto HasLeadingWhitespace(Token token) const -> bool;
+  // Returns whether the given token has trailing whitespace.
+  [[nodiscard]] auto HasTrailingWhitespace(Token token) const -> bool;
 
   [[nodiscard]] auto IsRecoveryToken(Token token) const -> bool;
 
@@ -211,47 +239,40 @@ class TokenizedBuffer {
   // Returns the text for an identifier.
   [[nodiscard]] auto GetIdentifierText(Identifier id) const -> llvm::StringRef;
 
-  // Prints a description of the tokenized stream to the provided `raw_ostream`.
-  //
-  // It prints one line of information for each token in the buffer, including
-  // the kind of token, where it occurs within the source file, indentation for
-  // the associated line, the spelling of the token in source, and any
-  // additional information tracked such as which unique identifier it is or any
-  // matched grouping token.
-  //
-  // Each line is formatted as a YAML record:
-  //
-  // clang-format off
-  // ```
-  // token: { index: 0, kind: 'Semi', line: 1, column: 1, indent: 1, spelling: ';' }
-  // ```
-  // clang-format on
-  //
-  // This can be parsed as YAML using tools like `python-yq` combined with `jq`
-  // on the command line. The format is also reasonably amenable to other
-  // line-oriented shell tools from `grep` to `awk`.
   auto Print(llvm::raw_ostream& output_stream) const -> void;
 
-  // Prints a description of a single token.  See `print` for details on the
-  // format.
   auto PrintToken(llvm::raw_ostream& output_stream, Token token) const -> void;
 
  private:
   class Lexer;
   friend Lexer;
 
+  class SourceBufferLocationTranslator
+      : public DiagnosticLocationTranslator<const char*> {
+   public:
+    explicit SourceBufferLocationTranslator(TokenizedBuffer& buffer)
+        : buffer(&buffer) {}
+
+    auto GetLocation(const char* pos) -> Diagnostic::Location override;
+
+   private:
+    TokenizedBuffer* buffer;
+  };
+
   struct PrintWidths {
+    auto Widen(const PrintWidths& new_width) -> void;
+
     int index;
     int kind;
     int column;
     int line;
     int indent;
-
-    void Widen(const PrintWidths& new_width);
   };
 
   struct TokenInfo {
     TokenKind kind;
+
+    bool has_trailing_space = false;
 
     bool is_recovery = false;
 
@@ -306,10 +327,16 @@ class TokenizedBuffer {
 
   llvm::SmallVector<llvm::APInt, 16> literal_int_storage;
 
+  llvm::SmallVector<std::string, 16> literal_string_storage;
+
   llvm::DenseMap<llvm::StringRef, Identifier> identifier_map;
 
   bool has_errors = false;
 };
+
+using LexerDiagnosticEmitter = DiagnosticEmitter<const char*>;
+
+using TokenDiagnosticEmitter = DiagnosticEmitter<TokenizedBuffer::Token>;
 
 }  // namespace Cocktail
 

@@ -11,7 +11,7 @@ auto main(int argc, char** argv) -> int {
     return EXIT_FAILURE;
   }
 
-  std::cout << "This is cocktail driver!!!" << std::endl;
+  std::cout << "This is cocktail driver!!!\n";
 
   llvm::SmallVector<llvm::StringRef, 16> args(argv + 1, argv + argc);
   Cocktail::Driver driver;
