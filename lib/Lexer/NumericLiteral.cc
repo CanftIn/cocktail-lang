@@ -19,16 +19,14 @@ struct EmptyDigitSequence : SimpleDiagnostic<EmptyDigitSequence> {
 struct InvalidDigit {
   static constexpr llvm::StringLiteral ShortName = "syntax-invalid-number";
 
-  struct Substitutions {
-    char digit;
-    int radix;
-  };
-  static auto Format(const Substitutions& subst) -> std::string {
-    return llvm::formatv("Invalid digit '{0}' in {1} numeric literal.",
-                         subst.digit,
-                         (subst.radix == 2    ? "binary"
-                          : subst.radix == 16 ? "hexadecimal"
-                                              : "decimal"))
+  char digit;
+  int radix;
+
+  auto Format() -> std::string {
+    return llvm::formatv(
+               "Invalid digit '{0}' in {1} numeric literal.", digit,
+               (radix == 2 ? "binary"
+                           : (radix == 16 ? "hexadecimal" : "decimal")))
         .str();
   }
 };
@@ -43,16 +41,15 @@ struct IrregularDigitSeparators {
   static constexpr llvm::StringLiteral ShortName =
       "syntax-irregular-digit-separators";
 
-  struct Substitutions {
-    int radix;
-  };
-  static auto Format(const Substitutions& subst) -> std::string {
-    assert((subst.radix == 10 || subst.radix == 16) && "unexpected radix");
+  int radix;
+
+  auto Format() -> std::string {
+    assert((radix == 10 || radix == 16) && "unexpected radix");
     return llvm::formatv(
                "Digit separators in {0} number should appear every {1} "
                "characters from the right.",
-               (subst.radix == 10 ? "decimal" : "hexadecimal"),
-               (subst.radix == 10 ? "3" : "4"))
+               (radix == 10 ? "decimal" : "hexadecimal"),
+               (radix == 10 ? "3" : "4"))
         .str();
   }
 };
@@ -72,21 +69,19 @@ struct BinaryRealLiteral : SimpleDiagnostic<BinaryRealLiteral> {
 struct WrongRealLiteralExponent {
   static constexpr llvm::StringLiteral ShortName = "syntax-invalid-number";
 
-  struct Substitutions {
-    char expected;
-  };
-  static auto Format(const Substitutions& subst) -> std::string {
-    return llvm::formatv("Expected '{0}' to introduce exponent.",
-                         subst.expected)
+  char expected;
+
+  auto Format() -> std::string {
+    return llvm::formatv("Expected '{0}' to introduce exponent.", expected)
         .str();
   }
 };
 
 }  // namespace
 
-auto NumericLiteralToken::Lex(llvm::StringRef source_text)
-    -> llvm::Optional<NumericLiteralToken> {
-  NumericLiteralToken result;
+auto LexedNumericLiteral::Lex(llvm::StringRef source_text)
+    -> llvm::Optional<LexedNumericLiteral> {
+  LexedNumericLiteral result;
 
   if (source_text.empty() || !IsDecimalDigit(source_text.front())) {
     return llvm::None;
@@ -115,8 +110,7 @@ auto NumericLiteralToken::Lex(llvm::StringRef source_text)
     }
 
     if ((c == '+' || c == '-') && seen_potential_exponent &&
-        result.exponent == i - 1 && i + 1 != n &&
-        IsAlnum(source_text[i + 1])) {
+        result.exponent == i - 1 && i + 1 != n && IsAlnum(source_text[i + 1])) {
       assert(!seen_plus_minus && "should only consume one + or -");
       seen_plus_minus = true;
       continue;
@@ -135,8 +129,60 @@ auto NumericLiteralToken::Lex(llvm::StringRef source_text)
   return result;
 }
 
-NumericLiteralToken::Parser::Parser(DiagnosticEmitter& emitter,
-                                    NumericLiteralToken literal)
+class LexedNumericLiteral::Parser {
+ public:
+  Parser(DiagnosticEmitter<const char*>& emitter, LexedNumericLiteral literal);
+
+  auto IsInteger() -> bool {
+    return literal.radix_point == static_cast<int>(literal.Text().size());
+  }
+
+  auto Check() -> bool;
+
+  auto GetRadix() const -> int { return radix; }
+
+  auto GetMantissa() -> llvm::APInt;
+
+  auto GetExponent() -> llvm::APInt;
+
+ private:
+  struct CheckDigitSequenceResult {
+    bool ok;
+    bool has_digit_separators = false;
+  };
+
+  auto CheckDigitSequence(llvm::StringRef text, int radix,
+                          bool allow_digit_separators = true)
+      -> CheckDigitSequenceResult;
+
+  auto CheckDigitSeparatorPlacement(llvm::StringRef text, int radix,
+                                    int num_digit_separators) -> void;
+  auto CheckLeadingZero() -> bool;
+  auto CheckIntPart() -> bool;
+  auto CheckFractionalPart() -> bool;
+  auto CheckExponentPart() -> bool;
+
+ private:
+  DiagnosticEmitter<const char*>& emitter;
+  LexedNumericLiteral literal;
+
+  // The radix of the literal: 2, 10, or 16
+  int radix = 10;
+
+  // [radix] int_part [. fract_part [[ep] [+-] exponent_part]]
+  llvm::StringRef int_part;
+  llvm::StringRef fract_part;
+  llvm::StringRef exponent_part;
+
+  bool mantissa_needs_cleaning = false;
+  bool exponent_needs_cleaning = false;
+
+  // True if we found a `-` before `exponent_part`.
+  bool exponent_is_negative = false;
+};
+
+LexedNumericLiteral::Parser::Parser(DiagnosticEmitter<const char*>& emitter,
+                                    LexedNumericLiteral literal)
     : emitter(emitter), literal(literal) {
   int_part = literal.text.substr(0, literal.radix_point);
   if (int_part.consume_front("0x")) {
@@ -154,14 +200,9 @@ NumericLiteralToken::Parser::Parser(DiagnosticEmitter& emitter,
   }
 }
 
-auto NumericLiteralToken::Parser::Check() -> CheckResult {
-  if (!CheckLeadingZero() || !CheckIntPart() || !CheckFractionalPart() ||
-      !CheckExponentPart()) {
-    return CheckResult::UnrecoverableError;
-  }
-
-  return recovered_from_error ? CheckResult::RecoverableError
-                              : CheckResult::Valid;
+auto LexedNumericLiteral::Parser::Check() -> bool {
+  return CheckLeadingZero() && CheckIntPart() && CheckFractionalPart() &&
+         CheckExponentPart();
 }
 
 static auto ParseInteger(llvm::StringRef digits, int radix, bool needs_cleaning)
@@ -182,13 +223,13 @@ static auto ParseInteger(llvm::StringRef digits, int radix, bool needs_cleaning)
   return value;
 }
 
-auto NumericLiteralToken::Parser::GetMantissa() -> llvm::APInt {
+auto LexedNumericLiteral::Parser::GetMantissa() -> llvm::APInt {
   const char* end = IsInteger() ? int_part.end() : fract_part.end();
   llvm::StringRef digits(int_part.begin(), end - int_part.begin());
   return ParseInteger(digits, radix, mantissa_needs_cleaning);
 }
 
-auto NumericLiteralToken::Parser::GetExponent() -> llvm::APInt {
+auto LexedNumericLiteral::Parser::GetExponent() -> llvm::APInt {
   llvm::APInt exponent(64, 0);
   if (!exponent_part.empty()) {
     exponent = ParseInteger(exponent_part, 10, exponent_needs_cleaning);
@@ -214,7 +255,7 @@ auto NumericLiteralToken::Parser::GetExponent() -> llvm::APInt {
   return exponent;
 }
 
-auto NumericLiteralToken::Parser::CheckDigitSequence(
+auto LexedNumericLiteral::Parser::CheckDigitSequence(
     llvm::StringRef text, int radix, bool allow_digit_separators)
     -> CheckDigitSequenceResult {
   assert((radix == 2 || radix == 10 || radix == 16) && "unknown radix");
@@ -245,19 +286,19 @@ auto NumericLiteralToken::Parser::CheckDigitSequence(
     if (c == '_') {
       if (!allow_digit_separators || i == 0 || text[i - 1] == '_' ||
           i + 1 == n) {
-        emitter.EmitError<InvalidDigitSeparator>();
-        recovered_from_error = true;
+        emitter.EmitError<InvalidDigitSeparator>(text.begin() + i);
       }
       ++num_digit_separators;
       continue;
     }
 
-    emitter.EmitError<InvalidDigit>({.digit = c, .radix = radix});
+    emitter.EmitError<InvalidDigit>(text.begin() + i,
+                                    {.digit = c, .radix = radix});
     return {.ok = false};
   }
 
   if (num_digit_separators == static_cast<int>(text.size())) {
-    emitter.EmitError<EmptyDigitSequence>();
+    emitter.EmitError<EmptyDigitSequence>(text.begin());
     return {.ok = false};
   }
 
@@ -268,7 +309,7 @@ auto NumericLiteralToken::Parser::CheckDigitSequence(
   return {.ok = true, .has_digit_separators = (num_digit_separators != 0)};
 }
 
-auto NumericLiteralToken::Parser::CheckDigitSeparatorPlacement(
+auto LexedNumericLiteral::Parser::CheckDigitSeparatorPlacement(
     llvm::StringRef text, int radix, int num_digit_separators) -> void {
   assert(std::count(text.begin(), text.end(), '_') == num_digit_separators &&
          "given wrong number of digit separators");
@@ -281,8 +322,7 @@ auto NumericLiteralToken::Parser::CheckDigitSeparatorPlacement(
          "unexpected radix for digit separator checks");
 
   auto diagnose_irregular_digit_separators = [&] {
-    emitter.EmitError<IrregularDigitSeparators>({.radix = radix});
-    recovered_from_error = true;
+    emitter.EmitError<IrregularDigitSeparators>(text.begin(), {.radix = radix});
   };
 
   int stride = (radix == 10 ? 4 : 5);
@@ -303,42 +343,43 @@ auto NumericLiteralToken::Parser::CheckDigitSeparatorPlacement(
   }
 }
 
-auto NumericLiteralToken::Parser::CheckLeadingZero() -> bool {
+auto LexedNumericLiteral::Parser::CheckLeadingZero() -> bool {
   if (radix == 10 && int_part.startswith("0") && int_part != "0") {
-    emitter.EmitError<UnknownBaseSpecifier>();
+    emitter.EmitError<UnknownBaseSpecifier>(int_part.begin());
     return false;
   }
   return true;
 }
 
-auto NumericLiteralToken::Parser::CheckIntPart() -> bool {
+auto LexedNumericLiteral::Parser::CheckIntPart() -> bool {
   auto int_result = CheckDigitSequence(int_part, radix);
   mantissa_needs_cleaning |= int_result.has_digit_separators;
   return int_result.ok;
 }
 
-auto NumericLiteralToken::Parser::CheckFractionalPart() -> bool {
+auto LexedNumericLiteral::Parser::CheckFractionalPart() -> bool {
   if (IsInteger()) {
     return true;
   }
 
   if (radix == 2) {
-    emitter.EmitError<BinaryRealLiteral>();
-    recovered_from_error = true;
+    emitter.EmitError<BinaryRealLiteral>(literal.text.begin() +
+                                         literal.radix_point);
   }
 
   mantissa_needs_cleaning = true;
   return CheckDigitSequence(fract_part, radix, false).ok;
 }
 
-auto NumericLiteralToken::Parser::CheckExponentPart() -> bool {
+auto LexedNumericLiteral::Parser::CheckExponentPart() -> bool {
   if (literal.exponent == static_cast<int>(literal.text.size())) {
     return true;
   }
 
-  char expected_exponent_kind = {radix == 10 ? 'e' : 'p'};
+  char expected_exponent_kind = (radix == 10 ? 'e' : 'p');
   if (literal.text[literal.exponent] != expected_exponent_kind) {
     emitter.EmitError<WrongRealLiteralExponent>(
+        literal.text.begin() + literal.exponent,
         {.expected = expected_exponent_kind});
     return false;
   }
@@ -346,6 +387,24 @@ auto NumericLiteralToken::Parser::CheckExponentPart() -> bool {
   auto exponent_result = CheckDigitSequence(exponent_part, 10);
   exponent_needs_cleaning = exponent_result.has_digit_separators;
   return exponent_result.ok;
+}
+
+// Parse the token and compute its value.
+auto LexedNumericLiteral::ComputeValue(
+    DiagnosticEmitter<const char*>& emitter) const -> Value {
+  Parser parser(emitter, *this);
+
+  if (!parser.Check()) {
+    return UnrecoverableError();
+  }
+
+  if (parser.IsInteger()) {
+    return IntegerValue{.value = parser.GetMantissa()};
+  }
+
+  return RealValue{.radix = (parser.GetRadix() == 10 ? 10 : 2),
+                   .mantissa = parser.GetMantissa(),
+                   .exponent = parser.GetExponent()};
 }
 
 }  // namespace Cocktail

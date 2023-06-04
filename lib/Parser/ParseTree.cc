@@ -2,7 +2,6 @@
 
 #include <cstdlib>
 
-#include "Cocktail/Diagnostics/DiagnosticEmitter.h"
 #include "Cocktail/Lexer/TokenKind.h"
 #include "Cocktail/Parser/ParseNodeKind.h"
 #include "Cocktail/Parser/ParserImpl.h"
@@ -12,11 +11,15 @@
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/iterator.h"
+#include "llvm/Support/raw_ostream.h"
 
 namespace Cocktail {
 
-auto ParseTree::Parse(TokenizedBuffer& tokens, DiagnosticEmitter& emitter)
+auto ParseTree::Parse(TokenizedBuffer& tokens, DiagnosticConsumer& consumer)
     -> ParseTree {
+  TokenizedBuffer::TokenLocationTranslator translator(tokens);
+  TokenDiagnosticEmitter emitter(translator, consumer);
+
   return Parser::Parse(tokens, emitter);
 }
 
@@ -63,7 +66,6 @@ auto ParseTree::GetNodeText(Node n) const -> llvm::StringRef {
 
 auto ParseTree::Print(llvm::raw_ostream& output) const -> void {
   output << "[\n";
-
   llvm::SmallVector<std::pair<Node, int>, 16> node_stack;
   for (Node n : Roots()) {
     node_stack.push_back({n, 0});
@@ -73,7 +75,7 @@ auto ParseTree::Print(llvm::raw_ostream& output) const -> void {
     Node n;
     int depth;
     std::tie(n, depth) = node_stack.pop_back_val();
-    const auto& n_impl = node_impls[n.GetIndex()];
+    auto& n_impl = node_impls[n.GetIndex()];
 
     for (int unused_indent : llvm::seq(0, depth)) {
       (void)unused_indent;

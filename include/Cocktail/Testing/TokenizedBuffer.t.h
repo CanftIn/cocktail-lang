@@ -1,10 +1,7 @@
-#ifndef COCKTAIL_LEXER_TOKENIZED_BUFFER_T_H
-#define COCKTAIL_LEXER_TOKENIZED_BUFFER_T_H
+#ifndef COCKTAIL_TESTING_TOKENIZED_BUFFER_T_H
+#define COCKTAIL_TESTING_TOKENIZED_BUFFER_T_H
 
-#include <gmock/gmock-matchers.h>
 #include <gmock/gmock.h>
-#include <llvm-15/llvm/Support/Casting.h>
-#include <llvm-15/llvm/Support/YAMLParser.h>
 
 #include "Cocktail/Lexer/TokenizedBuffer.h"
 #include "llvm/ADT/SmallString.h"
@@ -26,18 +23,22 @@ namespace Testing {
 struct ExpectedToken {
   friend auto operator<<(std::ostream& output, const ExpectedToken& expected)
       -> std::ostream& {
-    output << "\ntoken: { kind: '" << expected.kind.Name().str();
+    output << "\ntoken: { kind: '" << expected.kind.Name().str() << "'";
     if (expected.line != -1) {
-      output << "', line: " << expected.line;
+      output << ", line: " << expected.line;
     }
     if (expected.column != -1) {
-      output << ", column: " << expected.column;
+      output << ", column " << expected.column;
     }
     if (expected.indent_column != -1) {
       output << ", indent: " << expected.indent_column;
     }
     if (!expected.text.empty()) {
       output << ", spelling: '" << expected.text.str() << "'";
+    }
+    if (expected.string_contents) {
+      output << ", string contents: '" << expected.string_contents->str()
+             << "'";
     }
     if (expected.recovery) {
       output << ", recovery: true";
@@ -52,16 +53,18 @@ struct ExpectedToken {
   int indent_column = -1;
   bool recovery = false;
   llvm::StringRef text = "";
+  llvm::Optional<llvm::StringRef> string_contents = llvm::None;
 };
 
 MATCHER_P(HasTokens, raw_all_expected, "") {
   const TokenizedBuffer& buffer = arg;
-  llvm::ArrayRef<ExpectedToken> all_expected(raw_all_expected);
+  llvm::ArrayRef<ExpectedToken> all_expected = raw_all_expected;
 
   bool matches = true;
   auto buffer_it = buffer.Tokens().begin();
   for (const ExpectedToken& expected : all_expected) {
     if (buffer_it == buffer.Tokens().end()) {
+      // The size check outside the loop will fail and print useful info.
       break;
     }
 
@@ -118,6 +121,18 @@ MATCHER_P(HasTokens, raw_all_expected, "") {
                        << expected.text.str() << "`.";
       matches = false;
     }
+
+    assert(!expected.string_contents ||
+           expected.kind == TokenKind::StringLiteral());
+    if (expected.string_contents && actual_kind == TokenKind::StringLiteral()) {
+      llvm::StringRef actual_contents = buffer.GetStringLiteral(token);
+      if (actual_contents != *expected.string_contents) {
+        *result_listener << "\nToken " << index << " has contents `"
+                         << actual_contents.str() << "`, expected `"
+                         << expected.string_contents->str() << "`.";
+        matches = false;
+      }
+    }
   }
 
   int actual_size = buffer.Tokens().end() - buffer.Tokens().begin();
@@ -129,46 +144,8 @@ MATCHER_P(HasTokens, raw_all_expected, "") {
   return matches;
 }
 
-MATCHER_P2(IsKeyValueScalars, key, value, "") {
-  auto* kv_node = llvm::dyn_cast<llvm::yaml::KeyValueNode>(arg);
-  if (!kv_node) {
-    *result_listener << "this is a `" << arg->getType()
-                     << "` node, not a `KeyValueNode`.";
-    return false;
-  }
-
-  llvm::SmallString<128> storage;
-
-  auto* key_node = llvm::dyn_cast<llvm::yaml::ScalarNode>(kv_node->getKey());
-  if (!key_node) {
-    *result_listener << "the key is a `" << arg->getType()
-                     << "` node, not a `ScalarNode`.";
-    return false;
-  }
-  if (key != key_node->getValue(storage)) {
-    *result_listener << "the key is `" << key_node->getValue(storage).str()
-                     << "`, expected `" << key << "`.";
-    return false;
-  }
-
-  auto* value_node =
-      llvm::dyn_cast<llvm::yaml::ScalarNode>(kv_node->getValue());
-  if (!value_node) {
-    *result_listener << "the value is a `" << arg->getType()
-                     << "` node, not a `ScalarNode`.";
-    return false;
-  }
-  if (value != value_node->getValue(storage)) {
-    *result_listener << "the value is `" << value_node->getValue(storage).str()
-                     << "`, expected `" << value << "`.";
-    return false;
-  }
-
-  return true;
-}
-
 }  // namespace Testing
 
 }  // namespace Cocktail
 
-#endif  // COCKTAIL_LEXER_TOKENIZED_BUFFER_T_H
+#endif  // COCKTAIL_TESTING_TOKENIZED_BUFFER_T_H

@@ -3,7 +3,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "Cocktail/Common/Yaml.t.h"
+#include "Cocktail/Testing/Yaml.t.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/SourceMgr.h"
@@ -131,14 +131,22 @@ TEST(DriverTest, DumpTokens) {
                                                {"column", "1"},
                                                {"indent", "1"},
                                                {"spelling", "Hello"},
-                                               {"identifier", "0"}}},
+                                               {"identifier", "0"},
+                                               {"has_trailing_space", "true"}}},
                   {"token", Yaml::MappingValue{{"index", "1"},
                                                {"kind", "Identifier"},
                                                {"line", "1"},
                                                {"column", "7"},
                                                {"indent", "1"},
                                                {"spelling", "World"},
-                                               {"identifier", "1"}}}}));
+                                               {"identifier", "1"},
+                                               {"has_trailing_space", "true"}}},
+                  {"token", Yaml::MappingValue{{"index", "2"},
+                                               {"kind", "EndOfFile"},
+                                               {"line", "1"},
+                                               {"column", "12"},
+                                               {"indent", "1"},
+                                               {"spelling", ""}}}}));
 
   // Check that the subcommand dispatch works.
   EXPECT_TRUE(driver.RunFullCommand({"dump-tokens", test_file_path}));

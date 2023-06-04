@@ -9,6 +9,11 @@
 namespace Cocktail {
 
 class ParseNodeKind {
+  enum class KindEnum : uint8_t {
+#define COCKTAIL_PARSE_NODE_KIND(Name) Name,
+#include "Cocktail/Parser/ParseNodeKind.def"
+  };
+
  public:
 #define COCKTAIL_PARSE_NODE_KIND(Name)            \
   static constexpr auto Name() -> ParseNodeKind { \
@@ -30,15 +35,10 @@ class ParseNodeKind {
 
   [[nodiscard]] auto GetName() const -> llvm::StringRef;
 
- private:
-  enum class KindEnum : uint8_t {
-#define COCKTAIL_PARSE_NODE_KIND(Name) Name,
-#include "Cocktail/Parser/ParseNodeKind.def"
-  };
-
-  constexpr explicit ParseNodeKind(KindEnum k) : kind(k) {}
-
   constexpr operator KindEnum() const { return kind; }
+
+ private:
+  constexpr explicit ParseNodeKind(KindEnum k) : kind(k) {}
 
   KindEnum kind;
 };

@@ -67,12 +67,7 @@ auto SourceBuffer::CreateFromFile(llvm::StringRef filename)
   }
 
   errno = 0;
-  void* mapped_text = mmap(nullptr, size, PROT_READ,
-#if defined(__Linux__)
-                           MAP_PRIVATE | MAP_POPULATE,
-#else
-                           MAP_PRIVATE,
-#endif
+  void* mapped_text = mmap(nullptr, size, PROT_READ, MAP_PRIVATE,
                            file_descriptor, /*offset=*/0);
   if (mapped_text == MAP_FAILED) {
     return ErrnoToError(errno);

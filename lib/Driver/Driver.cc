@@ -112,7 +112,7 @@ auto Driver::RunDumpTokensSubcommand(llvm::ArrayRef<llvm::StringRef> args)
   }
 
   auto tokenized_source =
-      TokenizedBuffer::Lex(*source, ConsoleDiagnosticEmitter());
+      TokenizedBuffer::Lex(*source, ConsoleDiagnosticConsumer());
   tokenized_source.Print(output_stream);
   return !tokenized_source.HasErrors();
 }
@@ -143,9 +143,9 @@ auto Driver::RunDumpParseTreeSubcommand(llvm::ArrayRef<llvm::StringRef> args)
   }
 
   auto tokenized_source =
-      TokenizedBuffer::Lex(*source, ConsoleDiagnosticEmitter());
+      TokenizedBuffer::Lex(*source, ConsoleDiagnosticConsumer());
   auto parse_tree =
-      ParseTree::Parse(tokenized_source, ConsoleDiagnosticEmitter());
+      ParseTree::Parse(tokenized_source, ConsoleDiagnosticConsumer());
   parse_tree.Print(output_stream);
   return !tokenized_source.HasErrors() && !parse_tree.HasErrors();
 }
