@@ -18,6 +18,7 @@ using ::testing::Field;
 using ::testing::Matcher;
 using ::testing::Property;
 using ::testing::Truly;
+using ::testing::VariantWith;
 
 struct NumericLiteralTest : ::testing::Test {
   NumericLiteralTest() : error_tracker(ConsoleDiagnosticConsumer()) {}
@@ -37,15 +38,6 @@ struct NumericLiteralTest : ::testing::Test {
     return Lex(text).ComputeValue(emitter);
   }
 };
-
-// TODO: Use gmock's VariantWith once it exists.
-template <typename T, typename M>
-auto VariantWith(M value_matcher) -> decltype(auto) {
-  return Truly([=](auto&& variant) {
-    const T* value = std::get_if<T>(&variant);
-    return value && ::testing::Matches(value_matcher)(*value);
-  });
-}
 
 // Matcher for signed llvm::APInt.
 auto IsSignedInteger(int64_t value) -> Matcher<llvm::APInt> {
@@ -189,76 +181,75 @@ TEST_F(NumericLiteralTest, ValidatesIntegerDigitSeparators) {
   }
 }
 
-// TEST_F(NumericLiteralTest, HandlesRealLiteral) {
-//   struct Testcase {
-//     llvm::StringLiteral token;
-//     uint64_t mantissa;
-//     int64_t exponent;
-//     unsigned radix;
-//   };
-//   Testcase testcases[] = {
-//       // Decimal real literals.
-//       {.token = "0.0", .mantissa = 0, .exponent = -1, .radix = 10},
-//       {.token = "12.345", .mantissa = 12345, .exponent = -3, .radix = 10},
-//       {.token = "12.345e6", .mantissa = 12345, .exponent = 3, .radix = 10},
-//       {.token = "12.345e+6", .mantissa = 12345, .exponent = 3, .radix = 10},
-//       {.token = "1_234.5e-2", .mantissa = 12345, .exponent = -3, .radix = 10},
-//       {.token = "1.0e-2_000_000",
-//        .mantissa = 10,
-//        .exponent = -2'000'001,
-//        .radix = 10},
-// 
-//       // Hexadecimal real literals.
-//       {.token = "0x1_2345_6789.CDEF",
-//        .mantissa = 0x1'2345'6789'CDEF,
-//        .exponent = -16,
-//        .radix = 16},
-//       {.token = "0x0.0001p4", .mantissa = 1, .exponent = -12, .radix = 16},
-//       {.token = "0x0.0001p+4", .mantissa = 1, .exponent = -12, .radix = 16},
-//       {.token = "0x0.0001p-4", .mantissa = 1, .exponent = -20, .radix = 16},
-//       // The exponent here works out as exactly INT64_MIN.
-//       {.token = "0x1.01p-9223372036854775800",
-//        .mantissa = 0x101,
-//        .exponent = -9223372036854775807L - 1L,
-//        .radix = 16},
-//       // The exponent here doesn't fit in a signed 64-bit integer until we
-//       // adjust for the radix point.
-//       {.token = "0x1.01p9223372036854775809",
-//        .mantissa = 0x101,
-//        .exponent = 9223372036854775801L,
-//        .radix = 16},
-// 
-//       // Binary real literals. These are invalid, but we accept them for error
-//       // recovery.
-//       {.token = "0b10_11_01.01",
-//        .mantissa = 0b10110101,
-//        .exponent = -2,
-//        .radix = 2},
-//   };
-//   for (Testcase testcase : testcases) {
-//     error_tracker.Reset();
-//     EXPECT_THAT(Parse(testcase.token),
-//                 HasRealValue({.radix = (testcase.radix == 10 ? 10 : 2),
-//                               .mantissa = IsUnsignedInteger(testcase.mantissa),
-//                               .exponent = IsSignedInteger(testcase.exponent)}));
-//     EXPECT_EQ(error_tracker.SeenError(), testcase.radix == 2);
-//   }
-// }
+TEST_F(NumericLiteralTest, HandlesRealLiteral) {
+  struct Testcase {
+    llvm::StringLiteral token;
+    uint64_t mantissa;
+    int64_t exponent;
+    unsigned radix;
+  };
+  Testcase testcases[] = {
+      // Decimal real literals.
+      {.token = "0.0", .mantissa = 0, .exponent = -1, .radix = 10},
+      {.token = "12.345", .mantissa = 12345, .exponent = -3, .radix = 10},
+      {.token = "12.345e6", .mantissa = 12345, .exponent = 3, .radix = 10},
+      {.token = "12.345e+6", .mantissa = 12345, .exponent = 3, .radix = 10},
+      {.token = "1_234.5e-2", .mantissa = 12345, .exponent = -3, .radix = 10},
+      {.token = "1.0e-2_000_000",
+       .mantissa = 10,
+       .exponent = -2'000'001,
+       .radix = 10},
 
-// TEST_F(NumericLiteralTest, HandlesRealLiteralOverflow) {
-//   llvm::StringLiteral input = "0x1.000001p-9223372036854775800";
-//   error_tracker.Reset();
-//   EXPECT_THAT(
-//       Parse(input),
-//       HasRealValue({.radix = 2,
-//                     .mantissa = IsUnsignedInteger(0x1000001),
-//                     .exponent = Truly([](llvm::APInt exponent) {
-//                       return (exponent + 9223372036854775800).getSExtValue() ==
-//                              -24;
-//                     })}));
-//   EXPECT_FALSE(error_tracker.SeenError());
-// }
-// 
+      // Hexadecimal real literals.
+      {.token = "0x1_2345_6789.CDEF",
+       .mantissa = 0x1'2345'6789'CDEF,
+       .exponent = -16,
+       .radix = 16},
+      {.token = "0x0.0001p4", .mantissa = 1, .exponent = -12, .radix = 16},
+      {.token = "0x0.0001p+4", .mantissa = 1, .exponent = -12, .radix = 16},
+      {.token = "0x0.0001p-4", .mantissa = 1, .exponent = -20, .radix = 16},
+      // The exponent here works out as exactly INT64_MIN.
+      {.token = "0x1.01p-9223372036854775800",
+       .mantissa = 0x101,
+       .exponent = -9223372036854775807L - 1L,
+       .radix = 16},
+      // The exponent here doesn't fit in a signed 64-bit integer until we
+      // adjust for the radix point.
+      {.token = "0x1.01p9223372036854775809",
+       .mantissa = 0x101,
+       .exponent = 9223372036854775801L,
+       .radix = 16},
+
+      // Binary real literals. These are invalid, but we accept them for error
+      // recovery.
+      {.token = "0b10_11_01.01",
+       .mantissa = 0b10110101,
+       .exponent = -2,
+       .radix = 2},
+  };
+  for (Testcase testcase : testcases) {
+    error_tracker.Reset();
+    EXPECT_THAT(Parse(testcase.token),
+                HasRealValue({.radix = (testcase.radix == 10 ? 10 : 2),
+                              .mantissa = IsUnsignedInteger(testcase.mantissa),
+                              .exponent = IsSignedInteger(testcase.exponent)}));
+    EXPECT_EQ(error_tracker.SeenError(), testcase.radix == 2);
+  }
+}
+TEST_F(NumericLiteralTest, HandlesRealLiteralOverflow) {
+  llvm::StringLiteral input = "0x1.000001p-9223372036854775800";
+  error_tracker.Reset();
+  EXPECT_THAT(
+      Parse(input),
+      HasRealValue({.radix = 2,
+                    .mantissa = IsUnsignedInteger(0x1000001),
+                    .exponent = Truly([](llvm::APInt exponent) {
+                      return (exponent + 9223372036854775800).getSExtValue() ==
+                             -24;
+                    })}));
+  EXPECT_FALSE(error_tracker.SeenError());
+}
+
 TEST_F(NumericLiteralTest, ValidatesRealLiterals) {
   llvm::StringLiteral invalid_digit_separators[] = {
       // Invalid digit separators.
@@ -267,60 +258,61 @@ TEST_F(NumericLiteralTest, ValidatesRealLiterals) {
   };
   for (llvm::StringLiteral literal : invalid_digit_separators) {
     error_tracker.Reset();
-    EXPECT_THAT(Parse(literal), HasRealValue({}));
-    //EXPECT_TRUE(error_tracker.SeenError());
+    LexedNumericLiteral::Value value = Parse(literal);
+    EXPECT_THAT(value, HasRealValue(RealMatcher{}));
+    EXPECT_TRUE(error_tracker.SeenError());
   }
 
-  //llvm::StringLiteral invalid[] = {
-  //    // No digits in integer part.
-  //    "0x.0",
-  //    "0b.0",
-  //    "0x_.0",
-  //    "0b_.0",
-//
-  //    // No digits in fractional part.
-  //    "0.e",
-  //    "0.e0",
-  //    "0.e+0",
-  //    "0x0.p",
-  //    "0x0.p-0",
-//
-  //    // Invalid digits in mantissa.
-  //    "123A.4",
-  //    "123.4A",
-  //    "123A.4e0",
-  //    "123.4Ae0",
-  //    "0x123ABCDEFG.0",
-  //    "0x123.ABCDEFG",
-  //    "0x123ABCDEFG.0p0",
-  //    "0x123.ABCDEFGp0",
-//
-  //    // Invalid exponent letter.
-  //    "0.0f0",
-  //    "0.0p0",
-  //    "0.0z+0",
-  //    "0x0.0e0",
-  //    "0x0.0f0",
-  //    "0x0.0z-0",
-//
-  //    // No digits in exponent part.
-  //    "0.0e",
-  //    "0x0.0p",
-  //    "0.0e_",
-  //    "0x0.0p_",
-//
-  //    // Invalid digits in exponent part.
-  //    "0.0eHELLO",
-  //    "0.0eA",
-  //    "0.0e+A",
-  //    "0x0.0pA",
-  //    "0x0.0p-A",
-  //};
-  //for (llvm::StringLiteral literal : invalid) {
-  //  error_tracker.Reset();
-  //  EXPECT_THAT(Parse(literal), HasUnrecoverableError());
-  //  EXPECT_TRUE(error_tracker.SeenError());
-  //}
+  llvm::StringLiteral invalid[] = {
+      // No digits in integer part.
+      "0x.0",
+      "0b.0",
+      "0x_.0",
+      "0b_.0",
+
+      // No digits in fractional part.
+      "0.e",
+      "0.e0",
+      "0.e+0",
+      "0x0.p",
+      "0x0.p-0",
+
+      // Invalid digits in mantissa.
+      "123A.4",
+      "123.4A",
+      "123A.4e0",
+      "123.4Ae0",
+      "0x123ABCDEFG.0",
+      "0x123.ABCDEFG",
+      "0x123ABCDEFG.0p0",
+      "0x123.ABCDEFGp0",
+
+      // Invalid exponent letter.
+      "0.0f0",
+      "0.0p0",
+      "0.0z+0",
+      "0x0.0e0",
+      "0x0.0f0",
+      "0x0.0z-0",
+
+      // No digits in exponent part.
+      "0.0e",
+      "0x0.0p",
+      "0.0e_",
+      "0x0.0p_",
+
+      // Invalid digits in exponent part.
+      "0.0eHELLO",
+      "0.0eA",
+      "0.0e+A",
+      "0x0.0pA",
+      "0x0.0p-A",
+  };
+  for (llvm::StringLiteral literal : invalid) {
+    error_tracker.Reset();
+    EXPECT_THAT(Parse(literal), HasUnrecoverableError());
+    EXPECT_TRUE(error_tracker.SeenError());
+  }
 }
 
 }  // namespace
