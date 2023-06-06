@@ -147,6 +147,13 @@ class TokenizedBuffer::Lexer {
       }
 
       switch (source_text.front()) {
+        default:
+          assert(!IsSpace(source_text.front()));
+          if (whitespace_start != source_text.begin()) {
+            NoteWhitespace();
+          }
+          return true;
+
         case '\n':
           source_text = source_text.drop_front();
           if (source_text.empty()) {
@@ -161,13 +168,6 @@ class TokenizedBuffer::Lexer {
           ++current_column;
           source_text = source_text.drop_front();
           continue;
-
-        default:
-          assert(!IsSpace(source_text.front()));
-          if (whitespace_start != source_text.begin()) {
-            NoteWhitespace();
-          }
-          return true;
       }
     }
 
@@ -270,7 +270,7 @@ class TokenizedBuffer::Lexer {
 
   auto LexSymbolToken(llvm::StringRef& source_text) -> LexResult {
     TokenKind kind = llvm::StringSwitch<TokenKind>(source_text)
-#define CARBON_SYMBOL_TOKEN(Name, Spelling) \
+#define COCKTAIL_SYMBOL_TOKEN(Name, Spelling) \
   .StartsWith(Spelling, TokenKind::Name())
 #include "Cocktail/Lexer/TokenRegistry.def"
                          .Default(TokenKind::Error());
