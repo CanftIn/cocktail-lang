@@ -35,12 +35,14 @@ set(cocktail_SRCS)
 
 set(STATIC_LIB_NAME ${PROJECT_NAME})
 
-# apt install llvm-15-dev
+# apt install llvm-15-dev libclang-15-dev
 set(LLVM_DIR /usr/lib/llvm-15/lib/cmake/llvm)
+set(Clang_DIR /usr/lib/llvm-15/lib/cmake/clang)
 # manually install
 # set(LLVM_DIR /usr/local/lib/cmake/llvm)
 
 find_package(LLVM REQUIRED CONFIG)
+find_package(Clang REQUIRED CONFIG)
 
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
@@ -60,6 +62,9 @@ add_library(${STATIC_LIB_NAME} STATIC ${cocktail_SRCS})
 target_link_libraries(${STATIC_LIB_NAME}
   LLVMSupport
   LLVMOption
+  clangBasic
+  clangLex
+  clangTooling
   GTest::gtest
 )
 
