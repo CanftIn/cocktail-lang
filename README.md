@@ -12,7 +12,7 @@ depends on LLVM, only testing in Ubuntu yet.
 
 **required command:** 
 
-`sudo apt-get install cmake g++ clang bison flex libgtest-dev libgmock-dev make valgrind libbenchmark-dev llvm-15-dev`
+`sudo apt-get install cmake g++ clang bison flex libgtest-dev libgmock-dev make valgrind libbenchmark-dev llvm-15-dev libmlir-15-dev libclang-15-dev`
 
 ```bash
 > mkdir build
