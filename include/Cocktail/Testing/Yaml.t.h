@@ -61,6 +61,18 @@ MATCHER_P(Mapping, contents,
   return false;
 }
 
+MATCHER_P(Sequence, contents,
+          "is mapping that " + DescribeMatcher<SequenceValue>(contents)) {
+  ::testing::Matcher<SequenceValue> contents_matcher = contents;
+
+  if (auto* map = std::get_if<SequenceValue>(&arg)) {
+    return contents_matcher.MatchAndExplain(*map, result_listener);
+  }
+
+  *result_listener << "which is not a sequence";
+  return false;
+}
+
 MATCHER_P(Scalar, value,
           "has scalar value " + ::testing::PrintToString(value)) {
   ::testing::Matcher<ScalarValue> value_matcher = value;
