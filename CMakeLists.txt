@@ -55,6 +55,7 @@ file(GLOB_RECURSE LIB_PATH
     ./lib/Parser/*.cc
     ./lib/Driver/*.cc
     ./lib/Testing/*.cc
+    ./lib/Semantics/*.cc
     ./lib/Diagnostics/*.cc
   )
 list(APPEND cocktail_SRCS ${LIB_PATH})
