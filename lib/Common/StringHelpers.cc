@@ -68,7 +68,7 @@ auto UnescapeStringLiteral(llvm::StringRef source)
             break;
           }
           case 'u':
-            FATAL() << "\\u is not yet supported in string literals";
+            COCKTAIL_FATAL() << "\\u is not yet supported in string literals";
           default:
             // Unsupported.
             return std::nullopt;

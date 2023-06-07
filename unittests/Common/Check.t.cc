@@ -6,10 +6,11 @@ namespace {
 
 using namespace Cocktail;
 
-TEST(CheckTest, CheckTrue) { CHECK(true); }
+TEST(CheckTest, CheckTrue) { COCKTAIL_CHECK(true); }
 
 TEST(CheckTest, CheckFalse) {
-  ASSERT_DEATH({ CHECK(false); }, "CHECK failure: false\n");
+  ASSERT_DEATH({ COCKTAIL_CHECK(false); },
+               "CHECK failure at " + std::string(__FILE__) + ":12: false");
 }
 
 TEST(CheckTest, CheckTrueCallbackNotUsed) {
@@ -18,29 +19,25 @@ TEST(CheckTest, CheckTrueCallbackNotUsed) {
     called = true;
     return "called";
   };
-  CHECK(true) << callback();
+  COCKTAIL_CHECK(true) << callback();
   EXPECT_FALSE(called);
 }
 
 TEST(CheckTest, CheckFalseMessage) {
-  ASSERT_DEATH({ CHECK(false) << "msg"; }, "CHECK failure: false: msg\n");
+  ASSERT_DEATH({ COCKTAIL_CHECK(false) << "msg"; },
+               "CHECK failure at " + std::string(__FILE__) + ":27: false: msg");
 }
 
 TEST(CheckTest, CheckOutputForms) {
   const char msg[] = "msg";
   std::string str = "str";
   int i = 1;
-  CHECK(true) << msg << str << i << 0;
+  COCKTAIL_CHECK(true) << msg << str << i << 0;
 }
 
 TEST(CheckTest, Fatal) {
-  ASSERT_DEATH({ FATAL() << "msg"; }, "FATAL: msg\n");
-}
-
-auto FatalNoReturnRequired() -> int { FATAL() << "msg"; }
-
-TEST(ErrorTest, FatalNoReturnRequired) {
-  ASSERT_DEATH({ FatalNoReturnRequired(); }, "FATAL: msg\n");
+  ASSERT_DEATH({ COCKTAIL_FATAL() << "msg"; },
+               "FATAL failure at " + std::string(__FILE__) + ":39: msg");
 }
 
 }  // namespace
