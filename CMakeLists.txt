@@ -49,6 +49,7 @@ add_definitions(${LLVM_DEFINITIONS})
 
 file(GLOB_RECURSE LIB_PATH
     ./lib/Common/*.cc
+    ./lib/CppRefactor/*.cc
     ./lib/Source/*.cc
     ./lib/Lexer/*.cc
     ./lib/Parser/*.cc
