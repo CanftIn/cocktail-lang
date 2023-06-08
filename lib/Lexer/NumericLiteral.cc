@@ -2,7 +2,7 @@
 
 #include <bitset>
 
-#include "Cocktail/Lexer/CharacterSet.h"
+#include "Cocktail/Common/CharacterSet.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/Support/FormatVariadic.h"
 

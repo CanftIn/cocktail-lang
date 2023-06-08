@@ -1,7 +1,7 @@
 #include "Cocktail/Lexer/StringLiteral.h"
 
+#include "Cocktail/Common/CharacterSet.h"
 #include "Cocktail/Diagnostics/DiagnosticEmitter.h"
-#include "Cocktail/Lexer/CharacterSet.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/Support/ConvertUTF.h"
@@ -390,6 +390,5 @@ auto LexedStringLiteral::ComputeValue(LexerDiagnosticEmitter& emitter) const
   return ExpandEscapeSequencesAndRemoveIndent(emitter, content, hash_level,
                                               indent);
 }
-
 
 }  // namespace Cocktail

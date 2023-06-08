@@ -1,5 +1,5 @@
-#ifndef COCKTAIL_LEXER_CHARACTER_SET_H
-#define COCKTAIL_LEXER_CHARACTER_SET_H
+#ifndef COCKTAIL_COMMON_CHARACTER_SET_H
+#define COCKTAIL_COMMON_CHARACTER_SET_H
 
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringRef.h"
@@ -38,4 +38,4 @@ inline auto IsSpace(char c) -> bool {
 
 }  // namespace Cocktail
 
-#endif  // COCKTAIL_LEXER_CHARACTER_SET_H
+#endif  // COCKTAIL_COMMON_CHARACTER_SET_H

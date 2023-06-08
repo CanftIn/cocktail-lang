@@ -6,8 +6,8 @@
 #include <iterator>
 #include <string>
 
+#include "Cocktail/Common/CharacterSet.h"
 #include "Cocktail/Diagnostics/DiagnosticEmitter.h"
-#include "Cocktail/Lexer/CharacterSet.h"
 #include "Cocktail/Lexer/NumericLiteral.h"
 #include "Cocktail/Lexer/StringLiteral.h"
 #include "Cocktail/Lexer/TokenKind.h"
