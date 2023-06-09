@@ -4,7 +4,7 @@
 #include <string>
 
 #include "Cocktail/Common/StringHelpers.h"
-
+#include "llvm/ADT/StringRef.h"
 namespace {
 
 using namespace Cocktail;
