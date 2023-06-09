@@ -1,0 +1,9 @@
+#ifndef COCKTAIL_ENUM_BASE_TEST_KIND
+#error "Must define the x-macro to use this file."
+#endif
+
+COCKTAIL_ENUM_BASE_TEST_KIND(Beep)
+COCKTAIL_ENUM_BASE_TEST_KIND(Boop)
+COCKTAIL_ENUM_BASE_TEST_KIND(Burr)
+
+#undef COCKTAIL_ENUM_BASE_TEST_KIND
