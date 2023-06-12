@@ -25,7 +25,7 @@ jobs:
         run: |
           mkdir cmake_build
           cd cmake_build
-          cmake ..
+          cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/clang++-15
       - name: Run make
         run: |
           cd cmake_build
