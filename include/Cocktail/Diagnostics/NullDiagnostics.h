@@ -1,5 +1,5 @@
-#ifndef COCKTAIL_DIAGNOSTIC_NULL_DIAGNOSTICS_H
-#define COCKTAIL_DIAGNOSTIC_NULL_DIAGNOSTICS_H
+#ifndef COCKTAIL_DIAGNOSTICS_NULL_DIAGNOSTICS_H
+#define COCKTAIL_DIAGNOSTICS_NULL_DIAGNOSTICS_H
 
 #include "Cocktail/Diagnostics/DiagnosticEmitter.h"
 
@@ -35,4 +35,4 @@ inline auto NullDiagnosticEmitter() -> DiagnosticEmitter<LocationT>& {
 
 }  // namespace Cocktail
 
-#endif  // COCKTAIL_DIAGNOSTIC_NULL_DIAGNOSTICS_H
+#endif  // COCKTAIL_DIAGNOSTICS_NULL_DIAGNOSTICS_H
