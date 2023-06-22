@@ -36,6 +36,8 @@ class DiagnosticConsumer {
   virtual ~DiagnosticConsumer() = default;
 
   virtual auto HandleDiagnostic(const Diagnostic& diagnostic) -> void = 0;
+
+  virtual auto Flush() -> void {}
 };
 
 // translate some representation of a location

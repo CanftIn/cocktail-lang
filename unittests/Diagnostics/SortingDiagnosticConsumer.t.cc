@@ -1,0 +1,1 @@
+#include "Cocktail/Diagnostics/SortingDiagnosticConsumer.h"
