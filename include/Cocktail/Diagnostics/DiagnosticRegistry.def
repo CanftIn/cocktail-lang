@@ -1,0 +1,66 @@
+#ifndef DIAGNOSTIC_KIND
+#define DIAGNOSTIC_KIND(Name)
+#endif
+
+// ============================================================================
+// Lexer diagnostics
+// ============================================================================
+
+DIAGNOSTIC_KIND(BinaryRealLiteral)
+DIAGNOSTIC_KIND(ContentBeforeStringTerminator)
+DIAGNOSTIC_KIND(DecimalEscapeSequence)
+DIAGNOSTIC_KIND(EmptyDigitSequence)
+DIAGNOSTIC_KIND(HexadecimalEscapeMissingDigits)
+DIAGNOSTIC_KIND(InvalidDigit)
+DIAGNOSTIC_KIND(InvalidDigitSeparator)
+DIAGNOSTIC_KIND(InvalidHorizontalWhitespaceInString)
+DIAGNOSTIC_KIND(IrregularDigitSeparators)
+DIAGNOSTIC_KIND(MismatchedClosing)
+DIAGNOSTIC_KIND(MismatchedIndentInString)
+DIAGNOSTIC_KIND(NoWhitespaceAfterCommentIntroducer)
+DIAGNOSTIC_KIND(TooManyDigits)
+DIAGNOSTIC_KIND(TrailingComment)
+DIAGNOSTIC_KIND(UnicodeEscapeMissingBracedDigits)
+DIAGNOSTIC_KIND(UnicodeEscapeSurrogate)
+DIAGNOSTIC_KIND(UnicodeEscapeTooLarge)
+DIAGNOSTIC_KIND(UnknownBaseSpecifier)
+DIAGNOSTIC_KIND(UnknownEscapeSequence)
+DIAGNOSTIC_KIND(UnmatchedClosing)
+DIAGNOSTIC_KIND(UnrecognizedCharacters)
+DIAGNOSTIC_KIND(UnterminatedString)
+DIAGNOSTIC_KIND(WrongRealLiteralExponent)
+
+// ============================================================================
+// Parser diagnostics
+// ============================================================================
+
+DIAGNOSTIC_KIND(BinaryOperatorRequiresWhitespace)
+DIAGNOSTIC_KIND(ExpectedCloseParen)
+DIAGNOSTIC_KIND(ExpectedCodeBlock)
+DIAGNOSTIC_KIND(ExpectedExpression)
+DIAGNOSTIC_KIND(ExpectedFunctionBodyOrSemi)
+DIAGNOSTIC_KIND(ExpectedFunctionName)
+DIAGNOSTIC_KIND(ExpectedFunctionParams)
+DIAGNOSTIC_KIND(ExpectedIdentifierAfterDot)
+DIAGNOSTIC_KIND(ExpectedParameterName)
+DIAGNOSTIC_KIND(ExpectedParenAfter)
+DIAGNOSTIC_KIND(ExpectedSemiAfter)
+DIAGNOSTIC_KIND(ExpectedSemiAfterExpression)
+DIAGNOSTIC_KIND(ExpectedStructLiteralField)
+DIAGNOSTIC_KIND(ExpectedVariableName)
+DIAGNOSTIC_KIND(OperatorRequiresParentheses)
+DIAGNOSTIC_KIND(StackLimitExceeded)
+DIAGNOSTIC_KIND(UnaryOperatorHasWhitespace)
+DIAGNOSTIC_KIND(UnaryOperatorRequiresWhitespace)
+DIAGNOSTIC_KIND(UnexpectedTokenAfterListElement)
+DIAGNOSTIC_KIND(UnexpectedTokenInCodeBlock)
+DIAGNOSTIC_KIND(UnrecognizedDeclaration)
+
+// ============================================================================
+// Other diagnostics
+// ============================================================================
+
+// TestDiagnostic is only for unit tests.
+DIAGNOSTIC_KIND(TestDiagnostic)
+
+#undef DIAGNOSTIC_KIND
