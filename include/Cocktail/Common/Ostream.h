@@ -1,8 +1,6 @@
 #ifndef COCKTAIL_COMMON_OSTREAM_H
 #define COCKTAIL_COMMON_OSTREAM_H
 
-#include <llvm-15/llvm/Support/raw_ostream.h>
-
 #include <ostream>
 
 #include "Cocktail/Common/MetaProgramming.h"
