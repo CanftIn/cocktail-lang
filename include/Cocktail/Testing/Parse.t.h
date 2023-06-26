@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 
+#include "Cocktail/Common/Check.h"
 #include "Cocktail/Lexer/TokenizedBuffer.h"
 #include "Cocktail/Parser/ParseNodeKind.h"
 #include "Cocktail/Parser/ParseTree.h"
@@ -39,7 +40,7 @@ class ExpectedNodesMatcher
  public:
   explicit ExpectedNodesMatcher(
       llvm::SmallVector<ExpectedNode, 0> expected_nodess)
-      : expected_nodes(std::move(expected_nodess)) {}
+      : expected_nodes_(std::move(expected_nodess)) {}
 
   auto MatchAndExplain(const ParseTree& tree,
                        ::testing::MatchResultListener* output_ptr) const
@@ -51,7 +52,7 @@ class ExpectedNodesMatcher
                          int postorder_index, const ExpectedNode& expected_node,
                          ::testing::MatchResultListener& output) const -> bool;
 
-  llvm::SmallVector<ExpectedNode, 0> expected_nodes;
+  llvm::SmallVector<ExpectedNode, 0> expected_nodes_;
 };
 
 inline auto ExpectedNodesMatcher::MatchAndExplain(
@@ -59,21 +60,22 @@ inline auto ExpectedNodesMatcher::MatchAndExplain(
     -> bool {
   auto& output = *output_ptr;
   bool matches = true;
-  const auto rpo = llvm::reverse(tree.Postorder());
+  const auto rpo = llvm::reverse(tree.postorder());
   const auto nodes_begin = rpo.begin();
   const auto nodes_end = rpo.end();
   auto nodes_it = nodes_begin;
   llvm::SmallVector<const ExpectedNode*, 16> expected_node_stack;
-  for (const ExpectedNode& en : expected_nodes) {
+  for (const ExpectedNode& en : expected_nodes_) {
     expected_node_stack.push_back(&en);
   }
   while (!expected_node_stack.empty()) {
     if (nodes_it == nodes_end) {
+      // We'll check the size outside the loop.
       break;
     }
 
     ParseTree::Node n = *nodes_it++;
-    int postorder_index = n.GetIndex();
+    int postorder_index = n.index();
 
     const ExpectedNode& expected_node = *expected_node_stack.pop_back_val();
 
@@ -82,15 +84,15 @@ inline auto ExpectedNodesMatcher::MatchAndExplain(
     }
 
     if (expected_node.skip_subtree) {
-      assert(expected_node.children.empty() &&
-             "Must not skip an expected subtree while specifying expected "
-             "children!");
-      nodes_it = llvm::reverse(tree.Postorder(n)).end();
+      COCKTAIL_CHECK(expected_node.children.empty())
+          << "Must not skip an expected subtree while specifying expected "
+             "children!";
+      nodes_it = llvm::reverse(tree.postorder(n)).end();
       continue;
     }
 
     int num_children =
-        std::distance(tree.Children(n).begin(), tree.Children(n).end());
+        std::distance(tree.children(n).begin(), tree.children(n).end());
     if (num_children != static_cast<int>(expected_node.children.size())) {
       output
           << "\nParse node (postorder index #" << postorder_index << ") has "
@@ -98,7 +100,7 @@ inline auto ExpectedNodesMatcher::MatchAndExplain(
           << expected_node.children.size()
           << ". Skipping this subtree to avoid any unsynchronized tree walk.";
       matches = false;
-      nodes_it = llvm::reverse(tree.Postorder(n)).end();
+      nodes_it = llvm::reverse(tree.postorder(n)).end();
       continue;
     }
 
@@ -108,9 +110,9 @@ inline auto ExpectedNodesMatcher::MatchAndExplain(
   }
 
   if (nodes_it != nodes_end) {
-    assert(expected_node_stack.empty() &&
-           "If we have unmatched nodes in the input tree, should only finish "
-           "having fully processed expected tree.");
+    COCKTAIL_CHECK(expected_node_stack.empty())
+        << "If we have unmatched nodes in the input tree, should only finish "
+           "having fully processed expected tree.";
     output << "\nFinished processing expected nodes and there are still "
            << (nodes_end - nodes_it) << " unexpected nodes.";
     matches = false;
@@ -131,7 +133,7 @@ inline auto ExpectedNodesMatcher::DescribeTo(std::ostream* output_ptr) const
 
   llvm::SmallVector<std::pair<const ExpectedNode*, int>, 16>
       expected_node_stack;
-  for (const ExpectedNode& expected_node : llvm::reverse(expected_nodes)) {
+  for (const ExpectedNode& expected_node : llvm::reverse(expected_nodes_)) {
     expected_node_stack.push_back({&expected_node, 0});
   }
 
@@ -142,7 +144,7 @@ inline auto ExpectedNodesMatcher::DescribeTo(std::ostream* output_ptr) const
     for (int indent_count = 0; indent_count < depth; ++indent_count) {
       output << "  ";
     }
-    output << "{kind: '" << expected_node.kind.GetName().str() << "'";
+    output << "{kind: '" << expected_node.kind.name().str() << "'";
     if (!expected_node.text.empty()) {
       output << ", text: '" << expected_node.text << "'";
     }
@@ -154,8 +156,8 @@ inline auto ExpectedNodesMatcher::DescribeTo(std::ostream* output_ptr) const
     }
 
     if (!expected_node.children.empty()) {
-      assert(!expected_node.skip_subtree &&
-             "Must not have children and skip a subtree!");
+      COCKTAIL_CHECK(!expected_node.skip_subtree)
+          << "Must not have children and skip a subtree!";
       output << ", children: [\n";
       for (const ExpectedNode& child_expected_node :
            llvm::reverse(expected_node.children)) {
@@ -166,8 +168,8 @@ inline auto ExpectedNodesMatcher::DescribeTo(std::ostream* output_ptr) const
 
     output << "}";
     if (!expected_node_stack.empty()) {
-      assert(depth >= expected_node_stack.back().second &&
-             "Cannot have an increase in depth on a leaf node!");
+      COCKTAIL_CHECK(depth >= expected_node_stack.back().second)
+          << "Cannot have an increase in depth on a leaf node!";
       int pop_depth = depth - expected_node_stack.back().second;
       for (int pop_count = 0; pop_count < pop_depth; ++pop_count) {
         output << "]}";
@@ -184,17 +186,17 @@ inline auto ExpectedNodesMatcher::MatchExpectedNode(
     ::testing::MatchResultListener& output) const -> bool {
   bool matches = true;
 
-  ParseNodeKind kind = tree.GetNodeKind(n);
+  ParseNodeKind kind = tree.node_kind(n);
   if (kind != expected_node.kind) {
     output << "\nParse node (postorder index #" << postorder_index << ") is a "
-           << kind.GetName().str() << ", expected a "
-           << expected_node.kind.GetName().str() << ".";
+           << kind.name().str() << ", expected a "
+           << expected_node.kind.name().str() << ".";
     matches = false;
   }
 
-  if (tree.HasErrorInNode(n) != expected_node.has_error) {
+  if (tree.node_has_error(n) != expected_node.has_error) {
     output << "\nParse node (postorder index #" << postorder_index << ") "
-           << (tree.HasErrorInNode(n) ? "has an error"
+           << (tree.node_has_error(n) ? "has an error"
                                       : "does not have an error")
            << ", expected that it "
            << (expected_node.has_error ? "has an error"
@@ -221,8 +223,6 @@ inline auto MatchParseTreeNodes(
       new ExpectedNodesMatcher(std::move(expected_nodes)));
 }
 
-namespace NodeMatchers {
-
 // Matcher argument for a node with errors.
 struct HasErrorTag {};
 inline constexpr HasErrorTag HasError;
@@ -241,8 +241,10 @@ auto MatchNode(Args... args) -> ExpectedNode {
     void UpdateExpectationsForArg(std::string text) {
       expected.text = std::move(text);
     }
-    void UpdateExpectationsForArg(HasErrorTag) { expected.has_error = true; }
-    void UpdateExpectationsForArg(AnyChildrenTag) {
+    void UpdateExpectationsForArg(HasErrorTag /*tag*/) {
+      expected.has_error = true;
+    }
+    void UpdateExpectationsForArg(AnyChildrenTag /*tag*/) {
       expected.skip_subtree = true;
     }
     void UpdateExpectationsForArg(ExpectedNode node) {
@@ -254,14 +256,6 @@ auto MatchNode(Args... args) -> ExpectedNode {
   return handler.expected;
 }
 
-// A MatchFoo function for each parse node Foo. Used to construct ExpectedNodes
-// for use in MatchParseTreeNodes. Example:
-//
-// MatchParseTreeNodes(
-//     {MatchFunctionDeclaration("fn", MatchIdentifier("F"),
-//                               MatchParameterList(MatchParameterListEnd()),
-//                               MatchDeclarationEnd(";")),
-//      MatchFileEnd()});
 #define COCKTAIL_PARSE_NODE_KIND(kind)                           \
   template <typename... Args>                                    \
   auto Match##kind(Args... args) -> ExpectedNode {               \
@@ -275,22 +269,17 @@ inline auto MatchDesignator(ExpectedNode lhs, std::string rhs) -> ExpectedNode {
                                    MatchDesignatedName(std::move(rhs)));
 }
 
-// Helper for matching a function parameter list.
 template <typename... Args>
 auto MatchParameters(Args... args) -> ExpectedNode {
   return MatchParameterList("(", std::move(args)..., MatchParameterListEnd());
 }
 
-// Helper for matching the statements in the body of a simple function
-// definition with no parameters.
 template <typename... Args>
 auto MatchFunctionWithBody(Args... args) -> ExpectedNode {
   return MatchFunctionDeclaration(
       MatchDeclaredName(), MatchParameters(),
       MatchCodeBlock(std::move(args)..., MatchCodeBlockEnd()));
 }
-
-}  // namespace NodeMatchers
 
 }  // namespace Testing
 

@@ -9,7 +9,7 @@
 #include <sstream>
 #include <variant>
 
-#include "llvm/ADT/StringRef.h"
+#include "Cocktail/Common/Ostream.h"
 
 namespace Cocktail::Testing::Yaml {
 

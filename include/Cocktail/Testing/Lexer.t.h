@@ -22,7 +22,7 @@ class SingleTokenDiagnosticTranslator
   explicit SingleTokenDiagnosticTranslator(llvm::StringRef token)
       : token(token) {}
 
-  auto GetLocation(const char* pos) -> Diagnostic::Location override {
+  auto GetLocation(const char* pos) -> DiagnosticLocation override {
     assert(llvm::is_sorted(std::array{token.begin(), pos, token.end()}) &&
            "invalid diagnostic location");
     llvm::StringRef prefix = token.take_front(pos - token.begin());
