@@ -1,18 +1,20 @@
 #include "Cocktail/CppRefactor/FnInserter.h"
+#include "Cocktail/CppRefactor/ForRange.h"
+#include "Cocktail/CppRefactor/MatcherManager.h"
+#include "Cocktail/CppRefactor/VarDecl.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Refactoring.h"
 
-namespace cam = ::clang::ast_matchers;
-namespace ct = ::clang::tooling;
+using clang::tooling::RefactoringTool;
 
-static void InitReplacements(ct::RefactoringTool* tool) {
-  auto& files = tool->getFiles();
-  auto& repl = tool->getReplacements();
-  for (const auto& path : tool->getSourcePaths()) {
-    auto file = files.getFile(path);
+static void InitReplacements(RefactoringTool* tool) {
+  clang::FileManager& files = tool->getFiles();
+  Cocktail::Matcher::ReplacementMap& repl = tool->getReplacements();
+  for (const std::string& path : tool->getSourcePaths()) {
+    llvm::ErrorOr<const clang::FileEntry*> file = files.getFile(path);
     if (file.getError()) {
-      llvm::report_fatal_error(llvm::Twine("Error accessing `" + path + "`: " +
-                                           file.getError().message() + "\n"));
+      llvm::report_fatal_error(llvm::Twine("Error accessing `") + path +
+                               "`: " + file.getError().message() + "\n");
     }
     repl.insert({files.getCanonicalName(*file).str(), {}});
   }
@@ -20,15 +22,17 @@ static void InitReplacements(ct::RefactoringTool* tool) {
 
 auto main(int argc, const char** argv) -> int {
   llvm::cl::OptionCategory category("C++ refactoring options");
-  auto parser = ct::CommonOptionsParser::create(argc, argv, category);
-  ct::RefactoringTool tool(parser->getCompilations(),
-                           parser->getSourcePathList());
+  auto parser =
+      clang::tooling::CommonOptionsParser::create(argc, argv, category);
+  RefactoringTool tool(parser->getCompilations(), parser->getSourcePathList());
   InitReplacements(&tool);
 
   // Set up AST matcher callbacks.
-  cam::MatchFinder finder;
-  Cocktail::FnInserter fn_inserter(tool.getReplacements(), &finder);
+  Cocktail::MatcherManager matchers(&tool.getReplacements());
+  matchers.Register(std::make_unique<Cocktail::FnInserterFactory>());
+  matchers.Register(std::make_unique<Cocktail::ForRangeFactory>());
+  matchers.Register(std::make_unique<Cocktail::VarDeclFactory>());
 
   return tool.runAndSave(
-      clang::tooling::newFrontendActionFactory(&finder).get());
+      clang::tooling::newFrontendActionFactory(matchers.GetFinder()).get());
 }
