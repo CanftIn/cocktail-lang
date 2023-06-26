@@ -10,6 +10,7 @@
 #include <limits>
 #include <system_error>
 
+#include "Cocktail/Common/Check.h"
 #include "llvm/ADT/ScopeExit.h"
 #include "llvm/Support/Error.h"
 
@@ -84,34 +85,34 @@ auto SourceBuffer::CreateFromFile(llvm::StringRef filename)
       std::move(filename_str),
       llvm::StringRef(static_cast<const char*>(mapped_text), size));
 }
-
 SourceBuffer::SourceBuffer(SourceBuffer&& arg) noexcept
-    // Sets Uninitialized to ensure the input doesn't release mmapped data.
-    : content_mode(std::exchange(arg.content_mode, ContentMode::Uninitialized)),
-      filename(std::move(arg.filename)),
-      text_storage(std::move(arg.text_storage)),
-      text(content_mode == ContentMode::Owned ? text_storage : arg.text) {}
+    : content_mode_(
+          std::exchange(arg.content_mode_, ContentMode::Uninitialized)),
+      filename_(std::move(arg.filename_)),
+      text_storage_(std::move(arg.text_storage_)),
+      text_(content_mode_ == ContentMode::Owned ? text_storage_ : arg.text_) {}
 
 SourceBuffer::SourceBuffer(std::string filename, std::string text)
-    : content_mode(ContentMode::Owned),
-      filename(std::move(filename)),
-      text_storage(std::move(text)),
-      text(text_storage) {}
+    : content_mode_(ContentMode::Owned),
+      filename_(std::move(filename)),
+      text_storage_(std::move(text)),
+      text_(text_storage_) {}
 
 SourceBuffer::SourceBuffer(std::string filename, llvm::StringRef text)
-    : content_mode(ContentMode::MMapped),
-      filename(std::move(filename)),
-      text(text) {
-  assert((!text.empty()) &&
-         "Must not have an empty text when we have mapped data from a file!");
+    : content_mode_(ContentMode::MMapped),
+      filename_(std::move(filename)),
+      text_(text) {
+  COCKTAIL_CHECK(!text.empty())
+      << "Must not have an empty text when we have mapped data from a file!";
 }
 
 SourceBuffer::~SourceBuffer() {
-  if (content_mode == ContentMode::MMapped) {
+  if (content_mode_ == ContentMode::MMapped) {
     errno = 0;
-    int result = munmap(
-        const_cast<void*>(static_cast<const void*>(text.data())), text.size());
-    assert((result != -1) && "Unmapping text failed!");
+    int result =
+        munmap(const_cast<void*>(static_cast<const void*>(text_.data())),
+               text_.size());
+    COCKTAIL_CHECK(result != -1) << "Unmapping text failed!";
   }
 }
 

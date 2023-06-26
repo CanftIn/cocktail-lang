@@ -26,9 +26,9 @@ class SourceBuffer {
 
   ~SourceBuffer();
 
-  [[nodiscard]] auto Filename() const -> llvm::StringRef { return filename; }
+  [[nodiscard]] auto filename() const -> llvm::StringRef { return filename_; }
 
-  [[nodiscard]] auto Text() const -> llvm::StringRef { return text; }
+  [[nodiscard]] auto text() const -> llvm::StringRef { return text_; }
 
  private:
   enum class ContentMode {
@@ -42,10 +42,10 @@ class SourceBuffer {
   // Constructor for owned content.
   explicit SourceBuffer(std::string filename, std::string text);
 
-  ContentMode content_mode;
-  std::string filename;
-  std::string text_storage;
-  llvm::StringRef text;
+  ContentMode content_mode_;
+  std::string filename_;
+  std::string text_storage_;
+  llvm::StringRef text_;
 };
 
 }  // namespace Cocktail
