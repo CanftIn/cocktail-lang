@@ -10,7 +10,7 @@ inline auto NullDiagnosticLocationTranslator()
     -> DiagnosticLocationTranslator<LocationT>& {
   struct Translator : DiagnosticLocationTranslator<LocationT> {
     [[nodiscard]] auto GetLocation(LocationT /*unused*/)
-        -> Diagnostic::Location override {
+        -> DiagnosticLocation override {
       return {};
     }
   };
