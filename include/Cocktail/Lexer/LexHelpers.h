@@ -1,5 +1,5 @@
-#ifndef COCKTAIL_LEXER_LEX_HELPER_H
-#define COCKTAIL_LEXER_LEX_HELPER_H
+#ifndef COCKTAIL_LEXER_LEX_HELPERS_H
+#define COCKTAIL_LEXER_LEX_HELPERS_H
 
 #include "Cocktail/Diagnostics/DiagnosticEmitter.h"
 
@@ -12,4 +12,4 @@ auto CanLexInteger(DiagnosticEmitter<const char*>& emitter,
 
 }  // namespace Cocktail
 
-#endif  // COCKTAIL_LEXER_LEX_HELPER_H
+#endif  // COCKTAIL_LEXER_LEX_HELPERS_H
