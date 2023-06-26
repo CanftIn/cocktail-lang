@@ -1,9 +1,16 @@
 #include "Cocktail/Common/StringHelpers.h"
 
+#include <algorithm>
+#include <optional>
+
 #include "Cocktail/Common/Check.h"
 #include "llvm/ADT/StringExtras.h"
+#include "llvm/ADT/StringRef.h"
 
 namespace Cocktail {
+
+static constexpr llvm::StringRef TripleQuotes = R"(""")";
+static constexpr llvm::StringRef HorizontalWhitespaceChars = " \t";
 
 static auto FromHex(char c) -> std::optional<char> {
   if (c >= '0' && c <= '9') {
@@ -15,7 +22,7 @@ static auto FromHex(char c) -> std::optional<char> {
   return std::nullopt;
 }
 
-auto UnescapeStringLiteral(llvm::StringRef source)
+auto UnescapeStringLiteral(llvm::StringRef source, bool is_block_string)
     -> std::optional<std::string> {
   std::string ret;
   ret.reserve(source.size());
@@ -69,6 +76,11 @@ auto UnescapeStringLiteral(llvm::StringRef source)
           }
           case 'u':
             COCKTAIL_FATAL() << "\\u is not yet supported in string literals";
+          case '\n':
+            if (!is_block_string) {
+              return std::nullopt;
+            }
+            break;
           default:
             // Unsupported.
             return std::nullopt;
@@ -85,6 +97,63 @@ auto UnescapeStringLiteral(llvm::StringRef source)
     ++i;
   }
   return ret;
+}
+
+auto ParseBlockStringLiteral(llvm::StringRef source) -> ErrorOr<std::string> {
+  llvm::SmallVector<llvm::StringRef> lines;
+  source.split(lines, '\n', /*MaxSplit=*/-1, /*KeepEmpty=*/true);
+  if (lines.size() < 2) {
+    return Error("Too few lines");
+  }
+
+  llvm::StringRef first = lines[0];
+  if (!first.consume_front(TripleQuotes)) {
+    return Error("Should start with triple quotes: " + first);
+  }
+  first = first.rtrim(HorizontalWhitespaceChars);
+  if (first.find_first_of("\"#") != llvm::StringRef::npos ||
+      first.find_first_of(HorizontalWhitespaceChars) != llvm::StringRef::npos) {
+    return Error("Invalid characters in file type indicator: " + first);
+  }
+
+  llvm::StringRef last = lines[lines.size() - 1];
+  const size_t last_length = last.size();
+  last = last.ltrim(HorizontalWhitespaceChars);
+  const size_t indent = last_length - last.size();
+  if (last != TripleQuotes) {
+    return Error("Should end with triple quotes: " + last);
+  }
+
+  std::string parsed;
+  for (size_t i = 1; i < lines.size() - 1; ++i) {
+    llvm::StringRef line = lines[i];
+    const size_t first_non_ws =
+        line.find_first_not_of(HorizontalWhitespaceChars);
+    if (first_non_ws == llvm::StringRef::npos) {
+      line = "";
+    } else {
+      if (first_non_ws < indent) {
+        return Error("Wrong indent for line: " + line + ", expected " +
+                     llvm::Twine(indent));
+      }
+      line = line.drop_front(indent).rtrim(HorizontalWhitespaceChars);
+    }
+    llvm::SmallVector<char> buffer;
+    std::optional<std::string> unescaped = UnescapeStringLiteral(
+        (line + "\n").toStringRef(buffer), /*is_block_string=*/true);
+    if (!unescaped.has_value()) {
+      return Error("Invalid escaping in " + line);
+    }
+    if (!unescaped->empty()) {
+      parsed.append(*unescaped);
+    }
+  }
+  return parsed;
+}
+
+auto StringRefContainsPointer(llvm::StringRef ref, const char* ptr) -> bool {
+  auto le = std::less_equal<const char*>();
+  return le(ref.begin(), ptr) && le(ptr, ref.end());
 }
 
 }  // namespace Cocktail
