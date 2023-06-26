@@ -4,12 +4,12 @@
 
 namespace Cocktail {
 
-auto ParseNodeKind::GetName() const -> llvm::StringRef {
+auto ParseNodeKind::name() const -> llvm::StringRef {
   static constexpr llvm::StringLiteral Names[] = {
 #define COCKTAIL_PARSE_NODE_KIND(Name) #Name,
 #include "Cocktail/Parser/ParseNodeKind.def"
   };
-  return Names[static_cast<int>(kind)];
+  return Names[static_cast<int>(kind_)];
 }
 
 }  // namespace Cocktail

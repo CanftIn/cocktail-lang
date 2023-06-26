@@ -19,29 +19,31 @@ class ParseTree {
   class PostorderIterator;
   class SiblingIterator;
 
+  static constexpr int StackDepthLimit = 200;
+
   static auto Parse(TokenizedBuffer& tokens, DiagnosticConsumer& consumer)
       -> ParseTree;
 
-  [[nodiscard]] auto HasErrors() const -> bool { return has_errors; }
+  [[nodiscard]] auto has_errors() const -> bool { return has_errors_; }
 
-  [[nodiscard]] auto Size() const -> int { return node_impls.size(); }
+  [[nodiscard]] auto size() const -> int { return node_impls_.size(); }
 
-  [[nodiscard]] auto Postorder() const
+  [[nodiscard]] auto postorder() const
       -> llvm::iterator_range<PostorderIterator>;
 
-  [[nodiscard]] auto Postorder(Node n) const
+  [[nodiscard]] auto postorder(Node n) const
       -> llvm::iterator_range<PostorderIterator>;
 
-  [[nodiscard]] auto Children(Node n) const
+  [[nodiscard]] auto children(Node n) const
       -> llvm::iterator_range<SiblingIterator>;
 
-  [[nodiscard]] auto Roots() const -> llvm::iterator_range<SiblingIterator>;
+  [[nodiscard]] auto roots() const -> llvm::iterator_range<SiblingIterator>;
 
-  [[nodiscard]] auto HasErrorInNode(Node n) const -> bool;
+  [[nodiscard]] auto node_has_error(Node n) const -> bool;
 
-  [[nodiscard]] auto GetNodeKind(Node n) const -> ParseNodeKind;
+  [[nodiscard]] auto node_kind(Node n) const -> ParseNodeKind;
 
-  [[nodiscard]] auto GetNodeToken(Node n) const -> TokenizedBuffer::Token;
+  [[nodiscard]] auto node_token(Node n) const -> TokenizedBuffer::Token;
 
   [[nodiscard]] auto GetNodeText(Node n) const -> llvm::StringRef;
 
@@ -54,6 +56,10 @@ class ParseTree {
   friend Parser;
 
   struct NodeImpl {
+    explicit NodeImpl(ParseNodeKind k, TokenizedBuffer::Token t,
+                      int subtree_size_arg)
+        : kind(k), token(t), subtree_size(subtree_size_arg) {}
+
     ParseNodeKind kind;
 
     bool has_error = false;
@@ -61,22 +67,18 @@ class ParseTree {
     TokenizedBuffer::Token token;
 
     int32_t subtree_size;
-
-    explicit NodeImpl(ParseNodeKind k, TokenizedBuffer::Token t,
-                      int subtree_size_arg)
-        : kind(k), token(t), subtree_size(subtree_size_arg) {}
   };
 
   static_assert(sizeof(NodeImpl) == 12,
                 "Unexpected size of node implementation!");
 
-  explicit ParseTree(TokenizedBuffer& tokens_arg) : tokens(&tokens_arg) {}
+  explicit ParseTree(TokenizedBuffer& tokens_arg) : tokens_(&tokens_arg) {}
 
-  llvm::SmallVector<NodeImpl, 0> node_impls;
+  llvm::SmallVector<NodeImpl, 0> node_impls_;
 
-  TokenizedBuffer* tokens;
+  TokenizedBuffer* tokens_;
 
-  bool has_errors = false;
+  bool has_errors_ = false;
 };
 
 class ParseTree::Node {
@@ -84,25 +86,29 @@ class ParseTree::Node {
   Node() = default;
 
   friend auto operator==(Node lhs, Node rhs) -> bool {
-    return lhs.index == rhs.index;
+    return lhs.index_ == rhs.index_;
   }
   friend auto operator!=(Node lhs, Node rhs) -> bool {
-    return lhs.index != rhs.index;
+    return lhs.index_ != rhs.index_;
   }
   friend auto operator<(Node lhs, Node rhs) -> bool {
-    return lhs.index < rhs.index;
+    return lhs.index_ < rhs.index_;
   }
   friend auto operator<=(Node lhs, Node rhs) -> bool {
-    return lhs.index <= rhs.index;
+    return lhs.index_ <= rhs.index_;
   }
   friend auto operator>(Node lhs, Node rhs) -> bool {
-    return lhs.index > rhs.index;
+    return lhs.index_ > rhs.index_;
   }
   friend auto operator>=(Node lhs, Node rhs) -> bool {
-    return lhs.index >= rhs.index;
+    return lhs.index_ >= rhs.index_;
   }
 
-  [[nodiscard]] auto GetIndex() const -> int { return index; }
+  [[nodiscard]] auto index() const -> int { return index_; }
+
+  auto Print(llvm::raw_ostream& output) const -> void;
+
+  auto is_valid() -> bool { return index_ != InvalidValue; }
 
  private:
   friend ParseTree;
@@ -110,9 +116,11 @@ class ParseTree::Node {
   friend PostorderIterator;
   friend SiblingIterator;
 
-  explicit Node(int index_arg) : index(index_arg) {}
+  static constexpr int InvalidValue = -1;
 
-  int32_t index;
+  explicit Node(int index) : index_(index) {}
+
+  int32_t index_ = InvalidValue;
 };
 
 class ParseTree::PostorderIterator
@@ -120,38 +128,36 @@ class ParseTree::PostorderIterator
                                         std::random_access_iterator_tag, Node,
                                         int, Node*, Node> {
  public:
-  PostorderIterator() = default;
-
   auto operator==(const PostorderIterator& rhs) const -> bool {
-    return node == rhs.node;
+    return node_ == rhs.node_;
   }
-
   auto operator<(const PostorderIterator& rhs) const -> bool {
-    return node < rhs.node;
+    return node_ < rhs.node_;
   }
 
-  auto operator*() const -> Node { return node; }
+  auto operator*() const -> Node { return node_; }
 
   auto operator-(const PostorderIterator& rhs) const -> int {
-    return node.index - rhs.node.index;
+    return node_.index_ - rhs.node_.index_;
   }
 
   auto operator+=(int offset) -> PostorderIterator& {
-    node.index += offset;
+    node_.index_ += offset;
+    return *this;
+  }
+  auto operator-=(int offset) -> PostorderIterator& {
+    node_.index_ -= offset;
     return *this;
   }
 
-  auto operator-=(int offset) -> PostorderIterator& {
-    node.index -= offset;
-    return *this;
-  }
+  auto Print(llvm::raw_ostream& output) const -> void;
 
  private:
   friend class ParseTree;
 
-  Node node;
+  explicit PostorderIterator(Node n) : node_(n) {}
 
-  explicit PostorderIterator(Node node_arg) : node(node_arg) {}
+  Node node_;
 };
 
 class ParseTree::SiblingIterator
@@ -161,30 +167,31 @@ class ParseTree::SiblingIterator
   SiblingIterator() = default;
 
   auto operator==(const SiblingIterator& rhs) const -> bool {
-    return node == rhs.node;
+    return node_ == rhs.node_;
   }
-
   auto operator<(const SiblingIterator& rhs) const -> bool {
-    return node > rhs.node;
+    return node_ > rhs.node_;
   }
 
-  auto operator*() const -> Node { return node; }
+  auto operator*() const -> Node { return node_; }
 
   using iterator_facade_base::operator++;
   auto operator++() -> SiblingIterator& {
-    node.index -= std::abs(tree->node_impls[node.index].subtree_size);
+    node_.index_ -= std::abs(tree_->node_impls_[node_.index_].subtree_size);
     return *this;
   }
+
+  auto Print(llvm::raw_ostream& output) const -> void;
 
  private:
   friend class ParseTree;
 
-  const ParseTree* tree;
+  explicit SiblingIterator(const ParseTree& tree_arg, Node n)
+      : tree_(&tree_arg), node_(n) {}
 
-  Node node;
+  const ParseTree* tree_;
 
-  explicit SiblingIterator(const ParseTree& tree_arg, Node node_arg)
-      : tree(&tree_arg), node(node_arg) {}
+  Node node_;
 };
 
 }  // namespace Cocktail

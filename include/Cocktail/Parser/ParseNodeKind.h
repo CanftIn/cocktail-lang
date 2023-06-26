@@ -23,24 +23,22 @@ class ParseNodeKind {
 
   ParseNodeKind() = delete;
 
-  friend auto operator==(const ParseNodeKind& lhs, const ParseNodeKind& rhs)
-      -> bool {
-    return lhs.kind == rhs.kind;
+  friend auto operator==(ParseNodeKind lhs, ParseNodeKind rhs) -> bool {
+    return lhs.kind_ == rhs.kind_;
   }
 
-  friend auto operator!=(const ParseNodeKind& lhs, const ParseNodeKind& rhs)
-      -> bool {
-    return lhs.kind != rhs.kind;
+  friend auto operator!=(ParseNodeKind lhs, ParseNodeKind rhs) -> bool {
+    return lhs.kind_ != rhs.kind_;
   }
 
-  [[nodiscard]] auto GetName() const -> llvm::StringRef;
+  [[nodiscard]] auto name() const -> llvm::StringRef;
 
-  constexpr operator KindEnum() const { return kind; }
+  constexpr operator KindEnum() const { return kind_; }
 
  private:
-  constexpr explicit ParseNodeKind(KindEnum k) : kind(k) {}
+  constexpr explicit ParseNodeKind(KindEnum k) : kind_(k) {}
 
-  KindEnum kind;
+  KindEnum kind_;
 };
 
 // We expect the parse node kind to fit compactly into 8 bits.

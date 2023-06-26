@@ -13,17 +13,14 @@ namespace Cocktail {
 
 class LexedNumericLiteral {
  public:
-  [[nodiscard]] auto Text() const -> llvm::StringRef { return text; }
-
-  static auto Lex(llvm::StringRef source_text)
-      -> llvm::Optional<LexedNumericLiteral>;
+  enum class Radix : uint8_t { Binary = 2, Decimal = 10, Hexadecimal = 16 };
 
   struct IntegerValue {
     llvm::APInt value;
   };
 
   struct RealValue {
-    int radix;
+    Radix radix;
     llvm::APInt mantissa;
     llvm::APInt exponent;
   };
@@ -32,20 +29,25 @@ class LexedNumericLiteral {
 
   using Value = std::variant<IntegerValue, RealValue, UnrecoverableError>;
 
+  static auto Lex(llvm::StringRef source_text)
+      -> llvm::Optional<LexedNumericLiteral>;
+
   auto ComputeValue(DiagnosticEmitter<const char*>& emitter) const -> Value;
+
+  [[nodiscard]] auto text() const -> llvm::StringRef { return text_; }
 
  private:
   LexedNumericLiteral() = default;
 
   class Parser;
 
-  llvm::StringRef text;
+  llvm::StringRef text_;
 
   // The offset of '.'
-  int radix_point;
+  int radix_point_;
 
   // The offset of the alphabetical character introducing the exponent.
-  int exponent;
+  int exponent_;
 };
 
 }  // namespace Cocktail

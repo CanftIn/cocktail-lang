@@ -5,6 +5,7 @@
 #include <initializer_list>
 #include <iterator>
 
+#include "Cocktail/Common/Ostream.h"
 #include "llvm/ADT/StringRef.h"
 
 namespace Cocktail {
@@ -25,11 +26,11 @@ class TokenKind {
   TokenKind() = delete;
 
   friend auto operator==(const TokenKind& lhs, const TokenKind& rhs) -> bool {
-    return lhs.kind_value == rhs.kind_value;
+    return lhs.kind_value_ == rhs.kind_value_;
   }
 
   friend auto operator!=(const TokenKind& lhs, const TokenKind& rhs) -> bool {
-    return lhs.kind_value != rhs.kind_value;
+    return lhs.kind_value_ != rhs.kind_value_;
   }
 
   [[nodiscard]] auto Name() const -> llvm::StringRef;
@@ -60,12 +61,18 @@ class TokenKind {
     return false;
   }
 
-  constexpr operator KindEnum() const { return kind_value; }
+  [[nodiscard]] auto IsSizedTypeLiteral() const -> bool;
+
+  constexpr operator KindEnum() const { return kind_value_; }
+
+  auto Print(llvm::raw_ostream& out) const -> void {
+    out << GetFixedSpelling();
+  }
 
  private:
-  constexpr explicit TokenKind(KindEnum kind_value) : kind_value(kind_value) {}
+  constexpr explicit TokenKind(KindEnum kind_value) : kind_value_(kind_value) {}
 
-  KindEnum kind_value;
+  KindEnum kind_value_;
 };
 
 }  // namespace Cocktail

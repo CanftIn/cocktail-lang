@@ -17,17 +17,18 @@ class ParseTree::Parser {
       -> ParseTree;
 
  private:
+  class ScopedStackStep;
   struct SubtreeStart;
 
   explicit Parser(ParseTree& tree_arg, TokenizedBuffer& tokens_arg,
                   TokenDiagnosticEmitter& emitter);
 
   auto AtEndOfFile() -> bool {
-    return tokens.GetKind(*position) == TokenKind::EndOfFile();
+    return tokens_.GetKind(*position_) == TokenKind::EndOfFile();
   }
 
   [[nodiscard]] auto NextTokenKind() const -> TokenKind {
-    return tokens.GetKind(*position);
+    return tokens_.GetKind(*position_);
   }
 
   [[nodiscard]] auto NextTokenIs(TokenKind kind) const -> bool {
@@ -45,7 +46,6 @@ class ParseTree::Parser {
 
   auto AddLeafNode(ParseNodeKind kind, TokenizedBuffer::Token token) -> Node;
 
-  // Composes `consumeIf` and `addLeafNode`
   auto ConsumeAndAddLeafNodeIf(TokenKind t_kind, ParseNodeKind n_kind)
       -> llvm::Optional<Node>;
 
@@ -73,16 +73,27 @@ class ParseTree::Parser {
       -> llvm::Optional<Node>;
 
   template <typename ListElementParser, typename ListCompletionHandler>
+  auto ParseList(TokenKind open, TokenKind close,
+                 ListElementParser list_element_parser,
+                 ParseNodeKind comma_kind, ListCompletionHandler list_handler,
+                 bool allow_trailing_comma = false) -> llvm::Optional<Node>;
+
+  template <typename ListElementParser, typename ListCompletionHandler>
   auto ParseParenList(ListElementParser list_element_parser,
                       ParseNodeKind comma_kind,
-                      ListCompletionHandler list_handler)
-      -> llvm::Optional<Node>;
+                      ListCompletionHandler list_handler,
+                      bool allow_trailing_comma = false)
+      -> llvm::Optional<Node> {
+    return ParseList(TokenKind::OpenParen(), TokenKind::CloseParen(),
+                     list_element_parser, comma_kind, list_handler,
+                     allow_trailing_comma);
+  }
 
   auto ParseFunctionParameter() -> llvm::Optional<Node>;
 
   auto ParseFunctionSignature() -> bool;
 
-  auto ParseCodeBlock() -> Node;
+  auto ParseCodeBlock() -> llvm::Optional<Node>;
 
   auto ParseFunctionDeclaration() -> Node;
 
@@ -94,13 +105,13 @@ class ParseTree::Parser {
 
   auto ParseParenExpression() -> llvm::Optional<Node>;
 
+  auto ParseBraceExpression() -> llvm::Optional<Node>;
+
   auto ParsePrimaryExpression() -> llvm::Optional<Node>;
 
-  // Parses a designator expression suffix starting with `.`.
-  auto ParseDesignatorExpression(SubtreeStart start, bool has_errors)
-      -> llvm::Optional<Node>;
+  auto ParseDesignatorExpression(SubtreeStart start, ParseNodeKind kind,
+                                 bool has_errors) -> llvm::Optional<Node>;
 
-  // Parses a call expression suffix starting with `(`.
   auto ParseCallExpression(SubtreeStart start, bool has_errors)
       -> llvm::Optional<Node>;
 
@@ -148,12 +159,14 @@ class ParseTree::Parser {
 
   auto ParsePattern(PatternKind kind) -> llvm::Optional<Node>;
 
-  ParseTree& tree;
-  TokenizedBuffer& tokens;
-  TokenDiagnosticEmitter& emitter;
+  ParseTree& tree_;
+  TokenizedBuffer& tokens_;
+  TokenDiagnosticEmitter& emitter_;
 
-  TokenizedBuffer::TokenIterator position;
-  TokenizedBuffer::TokenIterator end;
+  TokenizedBuffer::TokenIterator position_;
+  TokenizedBuffer::TokenIterator end_;
+
+  int stack_depth_ = 0;
 };
 
 }  // namespace Cocktail

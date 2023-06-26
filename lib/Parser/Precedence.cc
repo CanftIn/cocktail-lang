@@ -2,6 +2,8 @@
 
 #include <utility>
 
+#include "Cocktail/Common/Check.h"
+
 namespace Cocktail {
 
 namespace {
@@ -37,7 +39,6 @@ enum PrecedenceLevel : int8_t {
   // Sentinel representing a context in which any operator can appear.
   Lowest,
 };
-
 constexpr int8_t NumPrecedenceLevels = Lowest + 1;
 
 // A precomputed lookup table determining the relative precedence of two
@@ -96,6 +97,7 @@ struct OperatorPriorityTable {
     bool changed = false;
     do {
       changed = false;
+      // NOLINTNEXTLINE(modernize-loop-convert)
       for (int8_t a = 0; a != NumPrecedenceLevels; ++a) {
         for (int8_t b = 0; b != NumPrecedenceLevels; ++b) {
           if (table[a][b] == OperatorPriority::LeftFirst) {
@@ -116,9 +118,8 @@ struct OperatorPriorityTable {
     for (int8_t a = 0; a != NumPrecedenceLevels; ++a) {
       for (int8_t b = 0; b != NumPrecedenceLevels; ++b) {
         if (table[a][b] == OperatorPriority::LeftFirst) {
-          if (table[b][a] == OperatorPriority::LeftFirst) {
-            throw "inconsistent lookup table entries";
-          }
+          COCKTAIL_CHECK(table[b][a] != OperatorPriority::LeftFirst)
+              << "inconsistent lookup table entries";
           table[b][a] = OperatorPriority::RightFirst;
         }
       }
@@ -160,16 +161,14 @@ struct OperatorPriorityTable {
   constexpr void ConsistencyCheck() {
     for (int8_t level = 0; level != NumPrecedenceLevels; ++level) {
       if (level != Highest) {
-        if (table[Highest][level] != OperatorPriority::LeftFirst ||
-            table[level][Highest] != OperatorPriority::RightFirst) {
-          throw "Highest is not highest priority";
-        }
+        COCKTAIL_CHECK(table[Highest][level] == OperatorPriority::LeftFirst &&
+                       table[level][Highest] == OperatorPriority::RightFirst)
+            << "Highest is not highest priority";
       }
       if (level != Lowest) {
-        if (table[Lowest][level] != OperatorPriority::RightFirst ||
-            table[level][Lowest] != OperatorPriority::LeftFirst) {
-          throw "Lowest is not lowest priority";
-        }
+        COCKTAIL_CHECK(table[Lowest][level] == OperatorPriority::RightFirst &&
+                       table[level][Lowest] == OperatorPriority::LeftFirst)
+            << "Lowest is not lowest priority";
       }
     }
   }
@@ -196,7 +195,7 @@ auto PrecedenceGroup::ForLeading(TokenKind kind)
     case TokenKind::Star():
       return PrecedenceGroup(TermPrefix);
 
-    case TokenKind::NotKeyword():
+    case TokenKind::Not():
       return PrecedenceGroup(LogicalPrefix);
 
     case TokenKind::Minus():
@@ -230,9 +229,9 @@ auto PrecedenceGroup::ForTrailing(TokenKind kind, bool infix)
       return Trailing{.level = CompoundAssignment, .is_binary = true};
 
     // Logical operators.
-    case TokenKind::AndKeyword():
+    case TokenKind::And():
       return Trailing{.level = LogicalAnd, .is_binary = true};
-    case TokenKind::OrKeyword():
+    case TokenKind::Or():
       return Trailing{.level = LogicalOr, .is_binary = true};
 
     // Bitwise operators.
@@ -240,7 +239,7 @@ auto PrecedenceGroup::ForTrailing(TokenKind kind, bool infix)
       return Trailing{.level = BitwiseAnd, .is_binary = true};
     case TokenKind::Pipe():
       return Trailing{.level = BitwiseOr, .is_binary = true};
-    case TokenKind::XorKeyword():
+    case TokenKind::Xor():
       return Trailing{.level = BitwiseXor, .is_binary = true};
     case TokenKind::GreaterGreater():
     case TokenKind::LessLess():
@@ -279,7 +278,7 @@ auto PrecedenceGroup::ForTrailing(TokenKind kind, bool infix)
 
     // Prefix-only operators.
     case TokenKind::Tilde():
-    case TokenKind::NotKeyword():
+    case TokenKind::Not():
       break;
 
     // Symbolic tokens that might be operators eventually.
@@ -314,7 +313,7 @@ auto PrecedenceGroup::ForTrailing(TokenKind kind, bool infix)
 auto PrecedenceGroup::GetPriority(PrecedenceGroup left, PrecedenceGroup right)
     -> OperatorPriority {
   static constexpr OperatorPriorityTable Lookup;
-  return Lookup.table[left.level][right.level];
+  return Lookup.table[left.level_][right.level_];
 }
 
 }  // namespace Cocktail

@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <iterator>
 
+#include "Cocktail/Common/Ostream.h"
 #include "Cocktail/Diagnostics/DiagnosticEmitter.h"
 #include "Cocktail/Lexer/TokenKind.h"
 #include "Cocktail/Source/SourceBuffer.h"
@@ -14,6 +15,7 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/iterator.h"
 #include "llvm/ADT/iterator_range.h"
+#include "llvm/Support/raw_ostream.h"
 
 namespace Cocktail {
 
@@ -28,30 +30,30 @@ class TokenizedBufferToken {
   TokenizedBufferToken() = default;
 
   friend auto operator==(const Token& lhs, const Token& rhs) -> bool {
-    return lhs.index == rhs.index;
+    return lhs.index_ == rhs.index_;
   }
   friend auto operator!=(const Token& lhs, const Token& rhs) -> bool {
-    return lhs.index != rhs.index;
+    return lhs.index_ != rhs.index_;
   }
   friend auto operator<(const Token& lhs, const Token& rhs) -> bool {
-    return lhs.index < rhs.index;
+    return lhs.index_ < rhs.index_;
   }
   friend auto operator<=(const Token& lhs, const Token& rhs) -> bool {
-    return lhs.index <= rhs.index;
+    return lhs.index_ <= rhs.index_;
   }
   friend auto operator>(const Token& lhs, const Token& rhs) -> bool {
-    return lhs.index > rhs.index;
+    return lhs.index_ > rhs.index_;
   }
   friend auto operator>=(const Token& lhs, const Token& rhs) -> bool {
-    return lhs.index >= rhs.index;
+    return lhs.index_ >= rhs.index_;
   }
 
  private:
   friend TokenizedBuffer;
 
-  explicit TokenizedBufferToken(int index) : index(index) {}
+  explicit TokenizedBufferToken(int index) : index_(index) {}
 
-  int32_t index;
+  int32_t index_;
 };
 
 }  // namespace Internal
@@ -65,30 +67,30 @@ class TokenizedBuffer {
     Line() = default;
 
     friend auto operator==(const Line& lhs, const Line& rhs) -> bool {
-      return lhs.index == rhs.index;
+      return lhs.index_ == rhs.index_;
     }
     friend auto operator!=(const Line& lhs, const Line& rhs) -> bool {
-      return lhs.index != rhs.index;
+      return lhs.index_ != rhs.index_;
     }
     friend auto operator<(const Line& lhs, const Line& rhs) -> bool {
-      return lhs.index < rhs.index;
+      return lhs.index_ < rhs.index_;
     }
     friend auto operator<=(const Line& lhs, const Line& rhs) -> bool {
-      return lhs.index <= rhs.index;
+      return lhs.index_ <= rhs.index_;
     }
     friend auto operator>(const Line& lhs, const Line& rhs) -> bool {
-      return lhs.index > rhs.index;
+      return lhs.index_ > rhs.index_;
     }
     friend auto operator>=(const Line& lhs, const Line& rhs) -> bool {
-      return lhs.index >= rhs.index;
+      return lhs.index_ >= rhs.index_;
     }
 
    private:
     friend class TokenizedBuffer;
 
-    explicit Line(int index) : index(index) {}
+    explicit Line(int index) : index_(index) {}
 
-    int32_t index;
+    int32_t index_;
   };
 
   class Identifier {
@@ -97,19 +99,19 @@ class TokenizedBuffer {
 
     friend auto operator==(const Identifier& lhs, const Identifier& rhs)
         -> bool {
-      return lhs.index == rhs.index;
+      return lhs.index_ == rhs.index_;
     }
     friend auto operator!=(const Identifier& lhs, const Identifier& rhs)
         -> bool {
-      return lhs.index != rhs.index;
+      return lhs.index_ != rhs.index_;
     }
 
    private:
     friend class TokenizedBuffer;
 
-    explicit Identifier(int index) : index(index) {}
+    explicit Identifier(int index) : index_(index) {}
 
-    int32_t index;
+    int32_t index_;
   };
 
   // Random-access iterator
@@ -119,88 +121,89 @@ class TokenizedBuffer {
    public:
     TokenIterator() = default;
 
-    explicit TokenIterator(Token token) : token(token) {}
+    explicit TokenIterator(Token token) : token_(token) {}
 
     auto operator==(const TokenIterator& rhs) const -> bool {
-      return token == rhs.token;
+      return token_ == rhs.token_;
     }
 
     auto operator<(const TokenIterator& rhs) const -> bool {
-      return token < rhs.token;
+      return token_ < rhs.token_;
     }
 
-    auto operator*() const -> const Token& { return token; }
+    auto operator*() const -> const Token& { return token_; }
 
     using iterator_facade_base::operator-;
     auto operator-(const TokenIterator& rhs) const -> int {
-      return token.index - rhs.token.index;
+      return token_.index_ - rhs.token_.index_;
     }
 
     auto operator+=(int n) -> TokenIterator& {
-      token.index += n;
+      token_.index_ += n;
       return *this;
     }
 
     auto operator-=(int n) -> TokenIterator& {
-      token.index -= n;
+      token_.index_ -= n;
       return *this;
     }
+
+    auto Print(llvm::raw_ostream& output) const -> void;
 
    private:
     friend class TokenizedBuffer;
 
-    Token token;
+    Token token_;
   };
 
   class RealLiteralValue {
    public:
     [[nodiscard]] auto Mantissa() const -> const llvm::APInt& {
-      return buffer->literal_int_storage[literal_index];
+      return buffer_->literal_int_storage_[literal_index_];
     }
 
     [[nodiscard]] auto Exponent() const -> const llvm::APInt& {
-      return buffer->literal_int_storage[literal_index + 1];
+      return buffer_->literal_int_storage_[literal_index_ + 1];
     }
 
-    [[nodiscard]] auto IsDecimal() const -> bool { return is_decimal; }
+    [[nodiscard]] auto IsDecimal() const -> bool { return is_decimal_; }
+
+    auto Print(llvm::raw_ostream& output_stream) const -> void {
+      output_stream << Mantissa() << "*" << (is_decimal_ ? "10" : "2") << "^"
+                    << Exponent();
+    }
 
    private:
     friend class TokenizedBuffer;
 
     RealLiteralValue(const TokenizedBuffer* buffer, int32_t literal_index,
                      bool is_decimal)
-        : buffer(buffer),
-          literal_index(literal_index),
-          is_decimal(is_decimal) {}
+        : buffer_(buffer),
+          literal_index_(literal_index),
+          is_decimal_(is_decimal) {}
 
-    const TokenizedBuffer* buffer;
-    int32_t literal_index;
-    bool is_decimal;
+    const TokenizedBuffer* buffer_;
+    int32_t literal_index_;
+    bool is_decimal_;
   };
 
   class TokenLocationTranslator
       : public DiagnosticLocationTranslator<Internal::TokenizedBufferToken> {
    public:
-    explicit TokenLocationTranslator(TokenizedBuffer& buffer)
-        : buffer(&buffer) {}
+    explicit TokenLocationTranslator(TokenizedBuffer& buffer,
+                                     int* last_line_lexed_to_column)
+        : buffer_(&buffer),
+          last_line_lexed_to_column_(last_line_lexed_to_column) {}
 
-    auto GetLocation(Token token) -> Diagnostic::Location override;
+    auto GetLocation(Token token) -> DiagnosticLocation override;
 
    private:
-    TokenizedBuffer* buffer;
+    TokenizedBuffer* buffer_;
+    int* last_line_lexed_to_column_;
   };
 
   static auto Lex(SourceBuffer& source, DiagnosticConsumer& consumer)
       -> TokenizedBuffer;
-
-  [[nodiscard]] auto HasErrors() const -> bool { return has_errors; }
-
-  [[nodiscard]] auto Tokens() const -> llvm::iterator_range<TokenIterator> {
-    return llvm::make_range(TokenIterator(Token(0)),
-                            TokenIterator(Token(token_infos.size())));
-  }
-
-  [[nodiscard]] auto Size() const -> int { return token_infos.size(); }
 
   [[nodiscard]] auto GetKind(Token token) const -> TokenKind;
   [[nodiscard]] auto GetLine(Token token) const -> Line;
@@ -221,6 +224,9 @@ class TokenizedBuffer {
   [[nodiscard]] auto GetRealLiteral(Token token) const -> RealLiteralValue;
 
   [[nodiscard]] auto GetStringLiteral(Token token) const -> llvm::StringRef;
+
+  [[nodiscard]] auto GetTypeLiteralSize(Token token) const
+      -> const llvm::APInt&;
 
   [[nodiscard]] auto GetMatchedClosingToken(Token opening_token) const -> Token;
 
@@ -243,6 +249,15 @@ class TokenizedBuffer {
 
   auto PrintToken(llvm::raw_ostream& output_stream, Token token) const -> void;
 
+  [[nodiscard]] auto has_errors() const -> bool { return has_errors_; }
+
+  [[nodiscard]] auto tokens() const -> llvm::iterator_range<TokenIterator> {
+    return llvm::make_range(TokenIterator(Token(0)),
+                            TokenIterator(Token(token_infos_.size())));
+  }
+
+  [[nodiscard]] auto size() const -> int { return token_infos_.size(); }
+
  private:
   class Lexer;
   friend Lexer;
@@ -250,17 +265,20 @@ class TokenizedBuffer {
   class SourceBufferLocationTranslator
       : public DiagnosticLocationTranslator<const char*> {
    public:
-    explicit SourceBufferLocationTranslator(TokenizedBuffer& buffer)
-        : buffer(&buffer) {}
+    explicit SourceBufferLocationTranslator(TokenizedBuffer& buffer,
+                                            int* last_line_lexed_to_column)
+        : buffer_(&buffer),
+          last_line_lexed_to_column_(last_line_lexed_to_column) {}
 
-    auto GetLocation(const char* pos) -> Diagnostic::Location override;
+    auto GetLocation(const char* loc) -> DiagnosticLocation override;
 
    private:
-    TokenizedBuffer* buffer;
+    TokenizedBuffer* buffer_;
+    int* last_line_lexed_to_column_;
   };
 
   struct PrintWidths {
-    auto Widen(const PrintWidths& new_width) -> void;
+    auto Widen(const PrintWidths& widths) -> void;
 
     int index;
     int kind;
@@ -305,7 +323,7 @@ class TokenizedBuffer {
     llvm::StringRef text;
   };
 
-  explicit TokenizedBuffer(SourceBuffer& source) : source(&source) {}
+  explicit TokenizedBuffer(SourceBuffer& source) : source_(&source) {}
 
   auto GetLineInfo(Line line) -> LineInfo&;
   [[nodiscard]] auto GetLineInfo(Line line) const -> const LineInfo&;
@@ -317,21 +335,21 @@ class TokenizedBuffer {
   auto PrintToken(llvm::raw_ostream& output_stream, Token token,
                   PrintWidths widths) const -> void;
 
-  SourceBuffer* source;
+  SourceBuffer* source_;
 
-  llvm::SmallVector<TokenInfo, 16> token_infos;
+  llvm::SmallVector<TokenInfo, 16> token_infos_;
 
-  llvm::SmallVector<LineInfo, 16> line_infos;
+  llvm::SmallVector<LineInfo, 16> line_infos_;
 
-  llvm::SmallVector<IdentifierInfo, 16> identifier_infos;
+  llvm::SmallVector<IdentifierInfo, 16> identifier_infos_;
 
-  llvm::SmallVector<llvm::APInt, 16> literal_int_storage;
+  llvm::SmallVector<llvm::APInt, 16> literal_int_storage_;
 
-  llvm::SmallVector<std::string, 16> literal_string_storage;
+  llvm::SmallVector<std::string, 16> literal_string_storage_;
 
-  llvm::DenseMap<llvm::StringRef, Identifier> identifier_map;
+  llvm::DenseMap<llvm::StringRef, Identifier> identifier_map_;
 
-  bool has_errors = false;
+  bool has_errors_ = false;
 };
 
 using LexerDiagnosticEmitter = DiagnosticEmitter<const char*>;

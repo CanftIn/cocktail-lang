@@ -23,15 +23,12 @@ enum class Associativity : int8_t {
   RightToLeft = 1
 };
 
+
 // A precedence group associated with an operator or expression.
 class PrecedenceGroup {
- private:
-  // We rely on implicit conversions via `int8_t` for enumerators defined in the
-  // implementation.
-  // NOLINTNEXTLINE(google-explicit-constructor)
-  PrecedenceGroup(int8_t level) : level(level) {}
-
  public:
+  struct Trailing;
+
   // Objects of this type should only be constructed using the static factory
   // functions below.
   PrecedenceGroup() = delete;
@@ -52,8 +49,6 @@ class PrecedenceGroup {
   // return llvm::None if the given token is not a prefix operator.
   static auto ForLeading(TokenKind kind) -> llvm::Optional<PrecedenceGroup>;
 
-  struct Trailing;
-
   // Look up the operator information of the given infix or postfix operator
   // token, or return llvm::None if the given token is not an infix or postfix
   // operator. `infix` indicates whether this is a valid infix operator, but is
@@ -63,10 +58,10 @@ class PrecedenceGroup {
       -> llvm::Optional<Trailing>;
 
   friend auto operator==(PrecedenceGroup lhs, PrecedenceGroup rhs) -> bool {
-    return lhs.level == rhs.level;
+    return lhs.level_ == rhs.level_;
   }
   friend auto operator!=(PrecedenceGroup lhs, PrecedenceGroup rhs) -> bool {
-    return lhs.level != rhs.level;
+    return lhs.level_ != rhs.level_;
   }
 
   // Compare the precedence levels for two adjacent operators.
@@ -79,8 +74,13 @@ class PrecedenceGroup {
   }
 
  private:
+  // We rely on implicit conversions via `int8_t` for enumerators defined in the
+  // implementation.
+  // NOLINTNEXTLINE(google-explicit-constructor)
+  PrecedenceGroup(int8_t level) : level_(level) {}
+
   // The precedence level.
-  int8_t level;
+  int8_t level_;
 };
 
 // Precedence information for a trailing operator.
