@@ -5,6 +5,7 @@
 namespace {
 
 using namespace Cocktail;
+using namespace Cocktail::Testing;
 
 class FnInserterTest : public MatcherTestBase {
  protected:

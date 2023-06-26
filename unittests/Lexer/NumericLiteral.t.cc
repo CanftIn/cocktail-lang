@@ -28,7 +28,7 @@ struct NumericLiteralTest : ::testing::Test {
   auto Lex(llvm::StringRef text) -> LexedNumericLiteral {
     llvm::Optional<LexedNumericLiteral> result = LexedNumericLiteral::Lex(text);
     assert(result);
-    EXPECT_EQ(result->Text(), text);
+    EXPECT_EQ(result->text(), text);
     return *result;
   }
 
@@ -93,7 +93,7 @@ TEST_F(NumericLiteralTest, HandlesIntegerLiteral) {
     error_tracker.Reset();
     EXPECT_THAT(Parse(testcase.token),
                 HasIntValue(IsUnsignedInteger(testcase.value)));
-    EXPECT_FALSE(error_tracker.SeenError());
+    EXPECT_FALSE(error_tracker.seen_error());
   }
 }
 
@@ -115,7 +115,7 @@ TEST_F(NumericLiteralTest, ValidatesBaseSpecifier) {
   for (llvm::StringLiteral literal : valid) {
     error_tracker.Reset();
     EXPECT_THAT(Parse(literal), HasIntValue(_));
-    EXPECT_FALSE(error_tracker.SeenError());
+    EXPECT_FALSE(error_tracker.seen_error());
   }
 
   llvm::StringLiteral invalid[] = {
@@ -127,7 +127,7 @@ TEST_F(NumericLiteralTest, ValidatesBaseSpecifier) {
   for (llvm::StringLiteral literal : invalid) {
     error_tracker.Reset();
     EXPECT_THAT(Parse(literal), HasUnrecoverableError());
-    EXPECT_TRUE(error_tracker.SeenError());
+    EXPECT_TRUE(error_tracker.seen_error());
   }
 }
 
@@ -150,7 +150,7 @@ TEST_F(NumericLiteralTest, ValidatesIntegerDigitSeparators) {
   for (llvm::StringLiteral literal : valid) {
     error_tracker.Reset();
     EXPECT_THAT(Parse(literal), HasIntValue(_));
-    EXPECT_FALSE(error_tracker.SeenError());
+    EXPECT_FALSE(error_tracker.seen_error());
   }
 
   llvm::StringLiteral invalid[] = {
@@ -177,7 +177,7 @@ TEST_F(NumericLiteralTest, ValidatesIntegerDigitSeparators) {
   for (llvm::StringLiteral literal : invalid) {
     error_tracker.Reset();
     EXPECT_THAT(Parse(literal), HasIntValue(_));
-    EXPECT_TRUE(error_tracker.SeenError());
+    EXPECT_TRUE(error_tracker.seen_error());
   }
 }
 
@@ -233,7 +233,7 @@ TEST_F(NumericLiteralTest, HandlesRealLiteral) {
                 HasRealValue({.radix = (testcase.radix == 10 ? 10 : 2),
                               .mantissa = IsUnsignedInteger(testcase.mantissa),
                               .exponent = IsSignedInteger(testcase.exponent)}));
-    EXPECT_EQ(error_tracker.SeenError(), testcase.radix == 2);
+    EXPECT_EQ(error_tracker.seen_error(), testcase.radix == 2);
   }
 }
 TEST_F(NumericLiteralTest, HandlesRealLiteralOverflow) {
@@ -247,7 +247,7 @@ TEST_F(NumericLiteralTest, HandlesRealLiteralOverflow) {
                       return (exponent + 9223372036854775800).getSExtValue() ==
                              -24;
                     })}));
-  EXPECT_FALSE(error_tracker.SeenError());
+  EXPECT_FALSE(error_tracker.seen_error());
 }
 
 TEST_F(NumericLiteralTest, ValidatesRealLiterals) {
@@ -260,7 +260,7 @@ TEST_F(NumericLiteralTest, ValidatesRealLiterals) {
     error_tracker.Reset();
     LexedNumericLiteral::Value value = Parse(literal);
     EXPECT_THAT(value, HasRealValue(RealMatcher{}));
-    EXPECT_TRUE(error_tracker.SeenError());
+    EXPECT_TRUE(error_tracker.seen_error());
   }
 
   llvm::StringLiteral invalid[] = {
@@ -311,7 +311,7 @@ TEST_F(NumericLiteralTest, ValidatesRealLiterals) {
   for (llvm::StringLiteral literal : invalid) {
     error_tracker.Reset();
     EXPECT_THAT(Parse(literal), HasUnrecoverableError());
-    EXPECT_TRUE(error_tracker.SeenError());
+    EXPECT_TRUE(error_tracker.seen_error());
   }
 }
 

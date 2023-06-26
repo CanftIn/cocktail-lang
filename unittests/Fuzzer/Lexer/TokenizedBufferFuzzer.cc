@@ -31,11 +31,11 @@ extern "C" auto LLVMFuzzerTestOneInput(const unsigned char* data,
       llvm::StringRef(reinterpret_cast<const char*>(data), size), filename);
 
   auto buffer = TokenizedBuffer::Lex(*source, NullDiagnosticConsumer());
-  if (buffer.HasErrors()) {
+  if (buffer.has_errors()) {
     return 0;
   }
 
-  for (TokenizedBuffer::Token token : buffer.Tokens()) {
+  for (TokenizedBuffer::Token token : buffer.tokens()) {
     int line_number = buffer.GetLineNumber(token);
     (void)line_number;
     assert(line_number > 0 && "Invalid line number!");

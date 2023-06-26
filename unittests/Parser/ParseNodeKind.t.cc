@@ -10,9 +10,9 @@ namespace {
 
 using namespace Cocktail;
 
-#define COCKTAIL_PARSE_NODE_KIND(Name)                 \
-  TEST(ParseNodeKindTest, Name) {                      \
-    EXPECT_EQ(#Name, ParseNodeKind::Name().GetName()); \
+#define COCKTAIL_PARSE_NODE_KIND(Name)              \
+  TEST(ParseNodeKindTest, Name) {                   \
+    EXPECT_EQ(#Name, ParseNodeKind::Name().name()); \
   }
 #include "Cocktail/Parser/ParseNodeKind.def"
 

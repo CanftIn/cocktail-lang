@@ -3,6 +3,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "Cocktail/Diagnostics/DiagnosticEmitter.h"
 #include "Cocktail/Testing/Yaml.t.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/Support/FileSystem.h"
@@ -11,45 +12,48 @@
 namespace {
 
 using namespace Cocktail;
+using namespace Cocktail::Testing;
+using namespace Cocktail::Testing::Yaml;
 
 using ::testing::ElementsAre;
-using ::testing::Eq;
 using ::testing::HasSubstr;
-using ::testing::NotNull;
 using ::testing::StrEq;
-namespace Yaml = Cocktail::Testing::Yaml;
 
+/// A raw_ostream that makes it easy to repeatedly check streamed output.
 class RawTestOstream : public llvm::raw_ostream {
-  std::string buffer;
-
-  void write_impl(const char* ptr, size_t size) override {
-    buffer.append(ptr, ptr + size);
-  }
-
-  [[nodiscard]] auto current_pos() const -> uint64_t override {
-    return buffer.size();
-  }
-
  public:
   ~RawTestOstream() override {
     flush();
-    if (!buffer.empty()) {
-      ADD_FAILURE() << "Unchecked output:\n" << buffer;
+    if (!buffer_.empty()) {
+      ADD_FAILURE() << "Unchecked output:\n" << buffer_;
     }
   }
 
+  /// Flushes the stream and returns the contents so far, clearing the stream
+  /// back to empty.
   auto TakeStr() -> std::string {
     flush();
-    std::string result = std::move(buffer);
-    buffer.clear();
+    std::string result = std::move(buffer_);
+    buffer_.clear();
     return result;
   }
+
+ private:
+  void write_impl(const char* ptr, size_t size) override {
+    buffer_.append(ptr, ptr + size);
+  }
+
+  [[nodiscard]] auto current_pos() const -> uint64_t override {
+    return buffer_.size();
+  }
+
+  std::string buffer_;
 };
 
 TEST(DriverTest, FullCommandErrors) {
   RawTestOstream test_output_stream;
   RawTestOstream test_error_stream;
-  Driver driver(test_output_stream, test_error_stream);
+  Driver driver = Driver(test_output_stream, test_error_stream);
 
   EXPECT_FALSE(driver.RunFullCommand({}));
   EXPECT_THAT(test_error_stream.TakeStr(), HasSubstr("ERROR"));
@@ -66,14 +70,16 @@ TEST(DriverTest, Help) {
   RawTestOstream test_error_stream;
   Driver driver = Driver(test_output_stream, test_error_stream);
 
-  EXPECT_TRUE(driver.RunHelpSubcommand({}));
+  EXPECT_TRUE(driver.RunHelpSubcommand(ConsoleDiagnosticConsumer(), {}));
   EXPECT_THAT(test_error_stream.TakeStr(), StrEq(""));
   auto help_text = test_output_stream.TakeStr();
 
-#define CARBON_SUBCOMMAND(Name, Spelling, ...) \
+  // Help text should mention each subcommand.
+#define COCKTAIL_SUBCOMMAND(Name, Spelling, ...) \
   EXPECT_THAT(help_text, HasSubstr(Spelling));
 #include "Cocktail/Driver/Flags.def"
 
+  // Check that the subcommand dispatch works.
   EXPECT_TRUE(driver.RunFullCommand({"help"}));
   EXPECT_THAT(test_error_stream.TakeStr(), StrEq(""));
   EXPECT_THAT(test_output_stream.TakeStr(), StrEq(help_text));
@@ -84,15 +90,16 @@ TEST(DriverTest, HelpErrors) {
   RawTestOstream test_error_stream;
   Driver driver = Driver(test_output_stream, test_error_stream);
 
-  EXPECT_FALSE(driver.RunHelpSubcommand({"foo"}));
+  EXPECT_FALSE(driver.RunHelpSubcommand(ConsoleDiagnosticConsumer(), {"foo"}));
   EXPECT_THAT(test_output_stream.TakeStr(), StrEq(""));
   EXPECT_THAT(test_error_stream.TakeStr(), HasSubstr("ERROR"));
 
-  EXPECT_FALSE(driver.RunHelpSubcommand({"help"}));
+  EXPECT_FALSE(driver.RunHelpSubcommand(ConsoleDiagnosticConsumer(), {"help"}));
   EXPECT_THAT(test_output_stream.TakeStr(), StrEq(""));
   EXPECT_THAT(test_error_stream.TakeStr(), HasSubstr("ERROR"));
 
-  EXPECT_FALSE(driver.RunHelpSubcommand({"--xyz"}));
+  EXPECT_FALSE(
+      driver.RunHelpSubcommand(ConsoleDiagnosticConsumer(), {"--xyz"}));
   EXPECT_THAT(test_output_stream.TakeStr(), StrEq(""));
   EXPECT_THAT(test_error_stream.TakeStr(), HasSubstr("ERROR"));
 }
@@ -119,7 +126,8 @@ TEST(DriverTest, DumpTokens) {
   Driver driver = Driver(test_output_stream, test_error_stream);
 
   auto test_file_path = CreateTestFile("Hello World");
-  EXPECT_TRUE(driver.RunDumpTokensSubcommand({test_file_path}));
+  EXPECT_TRUE(driver.RunDumpTokensSubcommand(ConsoleDiagnosticConsumer(),
+                                             {test_file_path}));
   EXPECT_THAT(test_error_stream.TakeStr(), StrEq(""));
   auto tokenized_text = test_output_stream.TakeStr();
 
@@ -159,17 +167,75 @@ TEST(DriverTest, DumpTokenErrors) {
   RawTestOstream test_error_stream;
   Driver driver = Driver(test_output_stream, test_error_stream);
 
-  EXPECT_FALSE(driver.RunDumpTokensSubcommand({}));
+  EXPECT_FALSE(driver.RunDumpTokensSubcommand(ConsoleDiagnosticConsumer(), {}));
   EXPECT_THAT(test_output_stream.TakeStr(), StrEq(""));
   EXPECT_THAT(test_error_stream.TakeStr(), HasSubstr("ERROR"));
 
-  EXPECT_FALSE(driver.RunDumpTokensSubcommand({"--xyz"}));
+  EXPECT_FALSE(
+      driver.RunDumpTokensSubcommand(ConsoleDiagnosticConsumer(), {"--xyz"}));
   EXPECT_THAT(test_output_stream.TakeStr(), StrEq(""));
   EXPECT_THAT(test_error_stream.TakeStr(), HasSubstr("ERROR"));
 
-  EXPECT_FALSE(driver.RunDumpTokensSubcommand({"/not/a/real/file/name"}));
+  EXPECT_FALSE(driver.RunDumpTokensSubcommand(ConsoleDiagnosticConsumer(),
+                                              {"/not/a/real/file/name"}));
   EXPECT_THAT(test_output_stream.TakeStr(), StrEq(""));
   EXPECT_THAT(test_error_stream.TakeStr(), HasSubstr("ERROR"));
+}
+
+TEST(DriverTest, DumpParseTree) {
+  RawTestOstream test_output_stream;
+  RawTestOstream test_error_stream;
+  Driver driver = Driver(test_output_stream, test_error_stream);
+
+  auto test_file_path = CreateTestFile("var v: Int = 42;");
+  EXPECT_TRUE(driver.RunDumpParseTreeSubcommand(ConsoleDiagnosticConsumer(),
+                                                {test_file_path}));
+  EXPECT_THAT(test_error_stream.TakeStr(), StrEq(""));
+  auto tokenized_text = test_output_stream.TakeStr();
+
+  EXPECT_THAT(
+      Yaml::Value::FromText(tokenized_text),
+      ElementsAre(Yaml::SequenceValue{
+          Yaml::MappingValue{
+              {"node_index", "6"},
+              {"kind", "VariableDeclaration"},
+              {"text", "var"},
+              {"subtree_size", "7"},
+              {"children",
+               Yaml::SequenceValue{
+                   Yaml::MappingValue{
+                       {"node_index", "2"},
+                       {"kind", "PatternBinding"},
+                       {"text", ":"},
+                       {"subtree_size", "3"},
+                       {"children",
+                        Yaml::SequenceValue{
+                            Yaml::MappingValue{{"node_index", "0"},
+                                               {"kind", "DeclaredName"},
+                                               {"text", "v"}},
+                            Yaml::MappingValue{{"node_index", "1"},
+                                               {"kind", "NameReference"},
+                                               {"text", "Int"}}}}},
+                   Yaml::MappingValue{{"node_index", "4"},
+                                      {"kind", "VariableInitializer"},
+                                      {"text", "="},
+                                      {"subtree_size", "2"},
+                                      {"children",  //
+                                       Yaml::SequenceValue{Yaml::MappingValue{
+                                           {"node_index", "3"},
+                                           {"kind", "Literal"},
+                                           {"text", "42"}}}}},
+                   Yaml::MappingValue{{"node_index", "5"},
+                                      {"kind", "DeclarationEnd"},
+                                      {"text", ";"}}}}},
+          Yaml::MappingValue{{"node_index", "7"},  //
+                             {"kind", "FileEnd"},
+                             {"text", ""}}}));
+
+  // Check that the subcommand dispatch works.
+  EXPECT_TRUE(driver.RunFullCommand({"dump-parse-tree", test_file_path}));
+  EXPECT_THAT(test_error_stream.TakeStr(), StrEq(""));
+  EXPECT_THAT(test_output_stream.TakeStr(), StrEq(tokenized_text));
 }
 
 }  // namespace
