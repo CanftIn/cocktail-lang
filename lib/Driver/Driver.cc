@@ -1,6 +1,7 @@
 #include "Cocktail/Driver/Driver.h"
 
 #include "Cocktail/Diagnostics/DiagnosticEmitter.h"
+#include "Cocktail/Diagnostics/SortingDiagnosticConsumer.h"
 #include "Cocktail/Lexer/TokenizedBuffer.h"
 #include "Cocktail/Parser/ParseTree.h"
 #include "Cocktail/Source/SourceBuffer.h"
@@ -17,7 +18,7 @@ namespace Cocktail {
 namespace {
 
 enum class Subcommand {
-#define COCKTAIL_SUBCOMMAND(NAME, ...) NAME,
+#define COCKTAIL_SUBCOMMAND(Name, ...) Name,
 #include "Cocktail/Driver/Flags.def"
   Unknown,
 };
@@ -34,35 +35,46 @@ auto GetSubcommand(llvm::StringRef name) -> Subcommand {
 
 auto Driver::RunFullCommand(llvm::ArrayRef<llvm::StringRef> args) -> bool {
   if (args.empty()) {
-    error_stream << "ERROR: No subcommand specified.\n";
+    error_stream_ << "ERROR: No subcommand specified.\n";
     return false;
   }
 
-  llvm::StringRef subcommand_text = args.front();
+  llvm::StringRef subcommand_text = args[0];
   llvm::SmallVector<llvm::StringRef, 16> subcommand_args(
       std::next(args.begin()), args.end());
+
+  DiagnosticConsumer* consumer = &ConsoleDiagnosticConsumer();
+  std::unique_ptr<SortingDiagnosticConsumer> sorting_consumer;
+  // TODO: Figure out command-line support (llvm::cl?), this is temporary.
+  if (!subcommand_args.empty() &&
+      subcommand_args[0] == "--print-errors=streamed") {
+    subcommand_args.erase(subcommand_args.begin());
+  } else {
+    sorting_consumer = std::make_unique<SortingDiagnosticConsumer>(*consumer);
+    consumer = sorting_consumer.get();
+  }
   switch (GetSubcommand(subcommand_text)) {
     case Subcommand::Unknown:
-      error_stream << "ERROR: Unknown subcommand '" << subcommand_text
-                   << "'.\n";
+      error_stream_ << "ERROR: Unknown subcommand '" << subcommand_text
+                    << "'.\n";
       return false;
 
 #define COCKTAIL_SUBCOMMAND(Name, ...) \
   case Subcommand::Name:               \
-    return Run##Name##Subcommand(subcommand_args);
+    return Run##Name##Subcommand(*consumer, subcommand_args);
 #include "Cocktail/Driver/Flags.def"
   }
-
-  llvm_unreachable("All subcommand handled!.");
+  llvm_unreachable("All subcommands handled!");
 }
 
-auto Driver::RunHelpSubcommand(llvm::ArrayRef<llvm::StringRef> args) -> bool {
+auto Driver::RunHelpSubcommand(DiagnosticConsumer& /*consumer*/,
+                               llvm::ArrayRef<llvm::StringRef> args) -> bool {
   if (!args.empty()) {
     ReportExtraArgs("help", args);
     return false;
   }
 
-  output_stream << "List of subcommands:\n\n";
+  output_stream_ << "List of subcommands:\n\n";
 
   constexpr llvm::StringLiteral SubcommandsAndHelp[][2] = {
 #define COCKTAIL_SUBCOMMAND(Name, Spelling, HelpText) {Spelling, HelpText},
@@ -78,86 +90,87 @@ auto Driver::RunHelpSubcommand(llvm::ArrayRef<llvm::StringRef> args) -> bool {
   for (const auto* subcommand_and_help : SubcommandsAndHelp) {
     llvm::StringRef subcommand_text = subcommand_and_help[0];
     llvm::StringRef help_text = subcommand_and_help[1];
-    output_stream << "  "
-                  << llvm::left_justify(subcommand_text, max_subcommand_width)
-                  << " - " << help_text << "\n";
+    output_stream_ << "  "
+                   << llvm::left_justify(subcommand_text, max_subcommand_width)
+                   << " - " << help_text << "\n";
   }
 
-  output_stream << "\n";
+  output_stream_ << "\n";
   return true;
 }
 
-auto Driver::RunDumpTokensSubcommand(llvm::ArrayRef<llvm::StringRef> args)
+auto Driver::RunDumpTokensSubcommand(DiagnosticConsumer& consumer,
+                                     llvm::ArrayRef<llvm::StringRef> args)
     -> bool {
   if (args.empty()) {
-    error_stream << "ERROR: No input file specified.\n";
+    error_stream_ << "ERROR: No input file specified.\n";
     return false;
   }
-  llvm::StringRef input_file_path = args.front();
+
+  llvm::StringRef input_file_name = args.front();
   args = args.drop_front();
   if (!args.empty()) {
     ReportExtraArgs("dump-tokens", args);
     return false;
   }
 
-  auto source = SourceBuffer::CreateFromFile(input_file_path);
+  auto source = SourceBuffer::CreateFromFile(input_file_name);
   if (!source) {
-    error_stream << "ERROR: Unable to open input source file: ";
+    error_stream_ << "ERROR: Unable to open input source file: ";
     llvm::handleAllErrors(source.takeError(),
-                          [&](const llvm::ErrorInfoBase& error) {
-                            error.log(error_stream);
-                            error_stream << "\n";
+                          [&](const llvm::ErrorInfoBase& ei) {
+                            ei.log(error_stream_);
+                            error_stream_ << "\n";
                           });
     return false;
   }
-
-  auto tokenized_source =
-      TokenizedBuffer::Lex(*source, ConsoleDiagnosticConsumer());
-  tokenized_source.Print(output_stream);
-  return !tokenized_source.HasErrors();
+  auto tokenized_source = TokenizedBuffer::Lex(*source, consumer);
+  consumer.Flush();
+  tokenized_source.Print(output_stream_);
+  return !tokenized_source.has_errors();
 }
 
-auto Driver::RunDumpParseTreeSubcommand(llvm::ArrayRef<llvm::StringRef> args)
+auto Driver::RunDumpParseTreeSubcommand(DiagnosticConsumer& consumer,
+                                        llvm::ArrayRef<llvm::StringRef> args)
     -> bool {
   if (args.empty()) {
-    error_stream << "ERROR: No input file specified.\n";
+    error_stream_ << "ERROR: No input file specified.\n";
     return false;
   }
 
-  llvm::StringRef input_file_path = args.front();
+  llvm::StringRef input_file_name = args.front();
   args = args.drop_front();
   if (!args.empty()) {
     ReportExtraArgs("dump-parse-tree", args);
     return false;
   }
 
-  auto source = SourceBuffer::CreateFromFile(input_file_path);
+  auto source = SourceBuffer::CreateFromFile(input_file_name);
   if (!source) {
-    error_stream << "ERROR: Unable to open input source file: ";
+    error_stream_ << "ERROR: Unable to open input source file: ";
     llvm::handleAllErrors(source.takeError(),
-                          [&](const llvm::ErrorInfoBase& error) {
-                            error.log(error_stream);
-                            error_stream << "\n";
+                          [&](const llvm::ErrorInfoBase& ei) {
+                            ei.log(error_stream_);
+                            error_stream_ << "\n";
                           });
     return false;
   }
-
-  auto tokenized_source =
-      TokenizedBuffer::Lex(*source, ConsoleDiagnosticConsumer());
-  auto parse_tree =
-      ParseTree::Parse(tokenized_source, ConsoleDiagnosticConsumer());
-  parse_tree.Print(output_stream);
-  return !tokenized_source.HasErrors() && !parse_tree.HasErrors();
+  auto tokenized_source = TokenizedBuffer::Lex(*source, consumer);
+  auto parse_tree = ParseTree::Parse(tokenized_source, consumer);
+  consumer.Flush();
+  parse_tree.Print(output_stream_);
+  return !tokenized_source.has_errors() && !parse_tree.has_errors();
 }
 
 auto Driver::ReportExtraArgs(llvm::StringRef subcommand_text,
                              llvm::ArrayRef<llvm::StringRef> args) -> void {
-  error_stream << "ERROR: Unexpected additional arguments to the '"
-               << subcommand_text << "' subcommand:";
-  for (llvm::StringRef arg : args) {
-    error_stream << " " << arg;
+  error_stream_ << "ERROR: Unexpected additional arguments to the '"
+                << subcommand_text << "' subcommand:";
+  for (auto arg : args) {
+    error_stream_ << " " << arg;
   }
-  error_stream << "\n";
+
+  error_stream_ << "\n";
 }
 
 }  // namespace Cocktail
