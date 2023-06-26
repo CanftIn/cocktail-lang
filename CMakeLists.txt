@@ -81,9 +81,9 @@ if (COCKTAIL_OPT_BUILD_UNITTESTS)
   add_subdirectory(unittests #[[EXCLUDE_FROM_ALL]])
 endif()
 
-#if (COCKTAIL_OPT_BUILD_BENCHMARKS)
-#  add_subdirectory(benchmarks #[[EXCLUDE_FROM_ALL]])
-#endif()
+if (COCKTAIL_OPT_BUILD_BENCHMARKS)
+  add_subdirectory(benchmarks #[[EXCLUDE_FROM_ALL]])
+endif()
 
 if (COCKTAIL_OPT_BUILD_TOOLS)
   add_subdirectory(tools)

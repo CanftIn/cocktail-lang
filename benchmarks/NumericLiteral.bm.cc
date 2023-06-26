@@ -45,3 +45,5 @@ BENCHMARK(BM_ComputeValue_Float);
 BENCHMARK(BM_ComputeValue_Integer);
 
 }  // namespace
+
+BENCHMARK_MAIN();

@@ -68,3 +68,5 @@ BENCHMARK(BM_IncompleteWithEscapes_Multiline);
 BENCHMARK(BM_IncompleteWithEscapes_Raw);
 
 }  // namespace
+
+BENCHMARK_MAIN();
