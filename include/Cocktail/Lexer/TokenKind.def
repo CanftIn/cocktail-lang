@@ -1,0 +1,184 @@
+// prior of including the header are:
+//
+// - `COCKTAIL_TOKEN`
+//   - `COCKTAIL_SYMBOL_TOKEN`
+//     - `COCKTAIL_OPENING_GROUP_SYMBOL_TOKEN`
+//     - `COCKTAIL_CLOSING_GROUP_SYMBOL_TOKEN`
+//   - `COCKTAIL_KEYWORD_TOKEN`
+
+#ifndef COCKTAIL_TOKEN
+#define COCKTAIL_TOKEN(Name)
+#endif
+
+#ifndef COCKTAIL_SYMBOL_TOKEN
+#define COCKTAIL_SYMBOL_TOKEN(Name, Spelling) COCKTAIL_TOKEN(Name)
+#endif
+
+#ifndef COCKTAIL_ONE_CHAR_SYMBOL_TOKEN
+#define COCKTAIL_ONE_CHAR_SYMBOL_TOKEN(Name, Spelling) \
+  COCKTAIL_SYMBOL_TOKEN(Name, Spelling)
+#endif
+
+#ifndef COCKTAIL_TOKEN_WITH_VIRTUAL_NODE
+#define COCKTAIL_TOKEN_WITH_VIRTUAL_NODE(Name) Name
+#endif
+
+// clang-format off
+
+COCKTAIL_SYMBOL_TOKEN(GreaterGreaterEqual, ">>=")
+COCKTAIL_SYMBOL_TOKEN(LessEqualGreater,    "<=>")
+COCKTAIL_SYMBOL_TOKEN(LessLessEqual,       "<<=")
+
+COCKTAIL_SYMBOL_TOKEN(AmpEqual,            "&=")
+COCKTAIL_SYMBOL_TOKEN(CaretEqual,          "^=")
+COCKTAIL_SYMBOL_TOKEN(ColonEqual,          ":=")
+COCKTAIL_SYMBOL_TOKEN(ColonExclaim,        ":!")
+COCKTAIL_SYMBOL_TOKEN(EqualEqual,          "==")
+COCKTAIL_SYMBOL_TOKEN(EqualGreater,        "=>")
+COCKTAIL_SYMBOL_TOKEN(ExclaimEqual,        "!=")
+COCKTAIL_SYMBOL_TOKEN(GreaterEqual,        ">=")
+COCKTAIL_SYMBOL_TOKEN(GreaterGreater,      ">>")
+COCKTAIL_SYMBOL_TOKEN(LessEqual,           "<=")
+COCKTAIL_SYMBOL_TOKEN(LessGreater,         "<>")
+COCKTAIL_SYMBOL_TOKEN(LessLess,            "<<")
+COCKTAIL_SYMBOL_TOKEN(LessMinus,           "<-")
+COCKTAIL_SYMBOL_TOKEN(MinusEqual,          "-=")
+COCKTAIL_SYMBOL_TOKEN(MinusGreater,        "->")
+COCKTAIL_SYMBOL_TOKEN(MinusMinus,          "--")
+COCKTAIL_SYMBOL_TOKEN(PercentEqual,        "%=")
+COCKTAIL_SYMBOL_TOKEN(PipeEqual,           "|=")
+COCKTAIL_SYMBOL_TOKEN(PlusEqual,           "+=")
+COCKTAIL_SYMBOL_TOKEN(PlusPlus,            "++")
+COCKTAIL_SYMBOL_TOKEN(SlashEqual,          "/=")
+COCKTAIL_SYMBOL_TOKEN(StarEqual,           "*=")
+COCKTAIL_SYMBOL_TOKEN(TildeEqual,          "~=")
+
+COCKTAIL_SYMBOL_TOKEN(Amp,                 "&")
+COCKTAIL_SYMBOL_TOKEN(At,                  "@")
+COCKTAIL_SYMBOL_TOKEN(Backslash,           "\\")
+COCKTAIL_SYMBOL_TOKEN(Caret,               "^")
+COCKTAIL_SYMBOL_TOKEN(Colon,               ":")
+COCKTAIL_SYMBOL_TOKEN(Equal,               "=")
+COCKTAIL_SYMBOL_TOKEN(Exclaim,             "!")
+COCKTAIL_SYMBOL_TOKEN(Greater,             ">")
+COCKTAIL_SYMBOL_TOKEN(Less,                "<")
+COCKTAIL_SYMBOL_TOKEN(Minus,               "-")
+COCKTAIL_SYMBOL_TOKEN(Percent,             "%")
+COCKTAIL_SYMBOL_TOKEN(Period,              ".")
+COCKTAIL_SYMBOL_TOKEN(Pipe,                "|")
+COCKTAIL_SYMBOL_TOKEN(Plus,                "+")
+COCKTAIL_SYMBOL_TOKEN(Question,            "?")
+COCKTAIL_SYMBOL_TOKEN(Slash,               "/")
+COCKTAIL_SYMBOL_TOKEN(Star,                "*")
+COCKTAIL_SYMBOL_TOKEN(Tilde,               "~")
+
+COCKTAIL_ONE_CHAR_SYMBOL_TOKEN(Comma,      ",")
+COCKTAIL_ONE_CHAR_SYMBOL_TOKEN(Semi,       ";")
+
+// clang-format on
+
+#ifndef COCKTAIL_OPENING_GROUP_SYMBOL_TOKEN
+#define COCKTAIL_OPENING_GROUP_SYMBOL_TOKEN(Name, Spelling, ClosingName) \
+  COCKTAIL_ONE_CHAR_SYMBOL_TOKEN(Name, Spelling)
+#endif
+COCKTAIL_OPENING_GROUP_SYMBOL_TOKEN(OpenParen, "(", CloseParen)
+COCKTAIL_OPENING_GROUP_SYMBOL_TOKEN(OpenCurlyBrace, "{", CloseCurlyBrace)
+COCKTAIL_OPENING_GROUP_SYMBOL_TOKEN(OpenSquareBracket, "[", CloseSquareBracket)
+#undef COCKTAIL_OPENING_GROUP_SYMBOL_TOKEN
+
+#ifndef COCKTAIL_CLOSING_GROUP_SYMBOL_TOKEN
+#define COCKTAIL_CLOSING_GROUP_SYMBOL_TOKEN(Name, Spelling, OpeningName) \
+  COCKTAIL_ONE_CHAR_SYMBOL_TOKEN(Name, Spelling)
+#endif
+COCKTAIL_CLOSING_GROUP_SYMBOL_TOKEN(CloseParen, ")", OpenParen)
+COCKTAIL_CLOSING_GROUP_SYMBOL_TOKEN(CloseCurlyBrace, "}", OpenCurlyBrace)
+COCKTAIL_CLOSING_GROUP_SYMBOL_TOKEN(CloseSquareBracket, "]", OpenSquareBracket)
+#undef COCKTAIL_CLOSING_GROUP_SYMBOL_TOKEN
+
+#undef COCKTAIL_ONE_CHAR_SYMBOL_TOKEN
+#undef COCKTAIL_SYMBOL_TOKEN
+
+#ifndef COCKTAIL_KEYWORD_TOKEN
+#define COCKTAIL_KEYWORD_TOKEN(Name, Spelling) COCKTAIL_TOKEN(Name)
+#endif
+// clang-format off
+COCKTAIL_KEYWORD_TOKEN(Abstract,            "abstract")
+COCKTAIL_KEYWORD_TOKEN(Adapt,               "adapt")
+COCKTAIL_KEYWORD_TOKEN(Addr,                "addr")
+COCKTAIL_KEYWORD_TOKEN(Alias,               "alias")
+COCKTAIL_TOKEN_WITH_VIRTUAL_NODE(
+  COCKTAIL_KEYWORD_TOKEN(And,               "and"))
+COCKTAIL_KEYWORD_TOKEN(Api,                 "api")
+COCKTAIL_KEYWORD_TOKEN(As,                  "as")
+COCKTAIL_KEYWORD_TOKEN(Auto,                "auto")
+COCKTAIL_KEYWORD_TOKEN(Base,                "base")
+COCKTAIL_KEYWORD_TOKEN(Bool,                "bool")
+COCKTAIL_KEYWORD_TOKEN(Break,               "break")
+COCKTAIL_KEYWORD_TOKEN(Case,                "case")
+COCKTAIL_KEYWORD_TOKEN(Choice,              "choice")
+COCKTAIL_KEYWORD_TOKEN(Class,               "class")
+COCKTAIL_KEYWORD_TOKEN(Const,               "const")
+COCKTAIL_KEYWORD_TOKEN(Constraint,          "constraint")
+COCKTAIL_KEYWORD_TOKEN(Continue,            "continue")
+COCKTAIL_KEYWORD_TOKEN(Default,             "default")
+COCKTAIL_KEYWORD_TOKEN(Destructor,          "destructor")
+COCKTAIL_KEYWORD_TOKEN(Else,                "else")
+COCKTAIL_KEYWORD_TOKEN(Extend,              "extend")
+COCKTAIL_KEYWORD_TOKEN(False,               "false")
+COCKTAIL_KEYWORD_TOKEN(Final,               "final")
+COCKTAIL_KEYWORD_TOKEN(Fn,                  "fn")
+COCKTAIL_KEYWORD_TOKEN(For,                 "for")
+COCKTAIL_KEYWORD_TOKEN(Forall,              "forall")
+COCKTAIL_KEYWORD_TOKEN(Friend,              "friend")
+COCKTAIL_KEYWORD_TOKEN(If,                  "if")
+COCKTAIL_KEYWORD_TOKEN(Impl,                "impl")
+COCKTAIL_KEYWORD_TOKEN(Impls,               "impls")
+COCKTAIL_KEYWORD_TOKEN(Import,              "import")
+COCKTAIL_KEYWORD_TOKEN(In,                  "in")
+COCKTAIL_KEYWORD_TOKEN(Interface,           "interface")
+COCKTAIL_KEYWORD_TOKEN(Let,                 "let")
+COCKTAIL_KEYWORD_TOKEN(Library,             "library")
+COCKTAIL_KEYWORD_TOKEN(Like,                "like")
+COCKTAIL_KEYWORD_TOKEN(Match,               "match")
+COCKTAIL_KEYWORD_TOKEN(Namespace,           "namespace")
+COCKTAIL_KEYWORD_TOKEN(Not,                 "not")
+COCKTAIL_KEYWORD_TOKEN(Observe,             "observe")
+COCKTAIL_TOKEN_WITH_VIRTUAL_NODE(
+  COCKTAIL_KEYWORD_TOKEN(Or,                "or"))
+COCKTAIL_KEYWORD_TOKEN(Override,            "override")
+COCKTAIL_KEYWORD_TOKEN(Package,             "package")
+COCKTAIL_KEYWORD_TOKEN(Partial,             "partial")
+COCKTAIL_KEYWORD_TOKEN(Private,             "private")
+COCKTAIL_KEYWORD_TOKEN(Protected,           "protected")
+COCKTAIL_KEYWORD_TOKEN(Require,             "require")
+COCKTAIL_KEYWORD_TOKEN(Return,              "return")
+COCKTAIL_KEYWORD_TOKEN(Returned,            "returned")
+COCKTAIL_KEYWORD_TOKEN(SelfTypeIdentifier,  "Self")
+COCKTAIL_KEYWORD_TOKEN(SelfValueIdentifier, "self")
+// TODO: Although we provide a String type literal, it's not standardized.
+COCKTAIL_KEYWORD_TOKEN(StringTypeLiteral,   "String")
+COCKTAIL_KEYWORD_TOKEN(Template,            "template")
+COCKTAIL_KEYWORD_TOKEN(Then,                "then")
+COCKTAIL_KEYWORD_TOKEN(True,                "true")
+COCKTAIL_KEYWORD_TOKEN(Type,                "type")
+// Underscore is tokenized as a keyword because it's part of identifiers.
+COCKTAIL_KEYWORD_TOKEN(Underscore,          "_")
+COCKTAIL_KEYWORD_TOKEN(Var,                 "var")
+COCKTAIL_KEYWORD_TOKEN(Virtual,             "virtual")
+COCKTAIL_KEYWORD_TOKEN(Where,               "where")
+COCKTAIL_KEYWORD_TOKEN(While,               "while")
+// clang-format on
+#undef COCKTAIL_KEYWORD_TOKEN
+
+COCKTAIL_TOKEN(Identifier)
+COCKTAIL_TOKEN(IntegerLiteral)
+COCKTAIL_TOKEN(RealLiteral)
+COCKTAIL_TOKEN(StringLiteral)
+COCKTAIL_TOKEN(IntegerTypeLiteral)
+COCKTAIL_TOKEN(UnsignedIntegerTypeLiteral)
+COCKTAIL_TOKEN(FloatingPointTypeLiteral)
+COCKTAIL_TOKEN(Error)
+COCKTAIL_TOKEN(EndOfFile)
+
+#undef COCKTAIL_TOKEN
+#undef COCKTAIL_TOKEN_WITH_VIRTUAL_NODE
