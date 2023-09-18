@@ -26,7 +26,28 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   add_compile_options(-fstandalone-debug)
 endif()
 
-# CMake helpers:
+#------------------------------------------------------------
+# LLVM BEGIN
+#------------------------------------------------------------
+
+# # apt install llvm-15-dev libclang-15-dev
+# set(LLVM_DIR /usr/lib/llvm-15/lib/cmake/llvm)
+# set(Clang_DIR /usr/lib/llvm-15/lib/cmake/clang)
+# # manually install
+# # set(LLVM_DIR /usr/local/lib/cmake/llvm)
+
+find_package(LLVM REQUIRED CONFIG)
+find_package(Clang REQUIRED CONFIG)
+
+include_directories(${LLVM_INCLUDE_DIRS})
+add_definitions(${LLVM_DEFINITIONS})
+#------------------------------------------------------------
+# LLVM END
+#------------------------------------------------------------
+
+#------------------------------------------------------------
+# CMake helpers begin
+#------------------------------------------------------------
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
@@ -36,59 +57,75 @@ find_package(GTest REQUIRED CONFIG)
 
 include_directories(include)
 
+#------------------------------------------------------------
+# CMake helpers end
+#------------------------------------------------------------
+
+#------------------------------------------------------------
+# lib make begin
+#------------------------------------------------------------
+
 # Create the cocktail C++ library
-set(cocktail_SRCS)
+set(COCKTAIL_SRCS)
+set(COCKTAIL_COMMON_SRCS)
+set(COCKTAIL_LEXER_SRCS)
+set(COCKTAIL_PARSE_SRCS)
+set(COCKTAIL_AST_SRCS)
+
+set(STATIC_LIB_NAME ${PROJECT_NAME})
+set(COCKTAIL_COMMON_LIB ${PROJECT_NAME}Common)
+set(COCKTAIL_LEXER_LIB ${PROJECT_NAME}Lexer)
+set(COCKTAIL_PARSE_LIB ${PROJECT_NAME}Parse)
+set(COCKTAIL_AST_LIB ${PROJECT_NAME}AST)
 
 set(STATIC_LIB_NAME ${PROJECT_NAME})
 
-# apt install llvm-15-dev libclang-15-dev
-set(LLVM_DIR /usr/lib/llvm-15/lib/cmake/llvm)
-set(Clang_DIR /usr/lib/llvm-15/lib/cmake/clang)
-# manually install
-# set(LLVM_DIR /usr/local/lib/cmake/llvm)
-
-find_package(LLVM REQUIRED CONFIG)
-find_package(Clang REQUIRED CONFIG)
-
-include_directories(${LLVM_INCLUDE_DIRS})
-add_definitions(${LLVM_DEFINITIONS})
-
-file(GLOB_RECURSE LIB_PATH
-    ./lib/Common/*.cc
-    ./lib/CppRefactor/*.cc
-    ./lib/Source/*.cc
-    ./lib/Lexer/*.cc
-    ./lib/Parser/*.cc
-    ./lib/Driver/*.cc
-    ./lib/Testing/*.cc
-    ./lib/Semantics/*.cc
-    ./lib/Lowering/*.cc
-    ./lib/Diagnostics/*.cc
+# cocktailCommon lib
+file(GLOB_RECURSE COCKTAIL_COMMON_SRCS
+    lib/Common/*.cc
   )
-list(APPEND cocktail_SRCS ${LIB_PATH})
-
-add_library(${STATIC_LIB_NAME} STATIC ${cocktail_SRCS})
-target_link_libraries(${STATIC_LIB_NAME}
+add_library(${COCKTAIL_COMMON_LIB} STATIC ${COCKTAIL_COMMON_SRCS})
+target_link_libraries(${COCKTAIL_COMMON_LIB}
   LLVMSupport
-  LLVMOption
-  clangBasic
-  clangLex
-  clangTooling
-  GTest::gtest
 )
+
+# # cocktailParse lib
+# file(GLOB_RECURSE LIB_PARSE_PATH
+#     ./lib/Parse/*.cc
+#   )
+# list(APPEND COCKTAIL_PARSE_SRCS ${LIB_PARSE_PATH})
+# add_library(${COCKTAIL_PARSE_LIB} STATIC ${COCKTAIL_PARSE_SRCS})
+# target_link_libraries(${COCKTAIL_PARSE_LIB}
+#   LLVMSupport
+#   clangBasic
+# )
+# 
+# # cocktailAST lib begin
+# file(GLOB_RECURSE LIB_AST_PATH
+#     ./lib/AST/*.cc
+#   )
+# list(APPEND COCKTAIL_AST_SRCS ${LIB_AST_PATH})
+# add_library(${COCKTAIL_AST_LIB} STATIC ${COCKTAIL_AST_SRCS})
+# target_link_libraries(${COCKTAIL_AST_LIB}
+#   LLVMSupport
+# )
+
+#------------------------------------------------------------
+# lib make end
+#------------------------------------------------------------
 
 if (COCKTAIL_OPT_BUILD_UNITTESTS)
   add_subdirectory(unittests #[[EXCLUDE_FROM_ALL]])
 endif()
 
-if (COCKTAIL_OPT_BUILD_BENCHMARKS)
-  add_subdirectory(benchmarks #[[EXCLUDE_FROM_ALL]])
-endif()
-
-if (COCKTAIL_OPT_BUILD_TOOLS)
-  add_subdirectory(tools)
-endif()
-
-if (COCKTAIL_OPT_BUILD_EXPERIMENTAL)
-  add_subdirectory(experimental)
-endif()
+# if (COCKTAIL_OPT_BUILD_BENCHMARKS)
+#   add_subdirectory(benchmarks #[[EXCLUDE_FROM_ALL]])
+# endif()
+# 
+# if (COCKTAIL_OPT_BUILD_TOOLS)
+#   add_subdirectory(tools)
+# endif()
+# 
+# if (COCKTAIL_OPT_BUILD_EXPERIMENTAL)
+#   add_subdirectory(experimental)
+# endif()
