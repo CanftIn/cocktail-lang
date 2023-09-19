@@ -22,6 +22,9 @@ depends on LLVM, only testing in Ubuntu yet.
 > ctest -j$(nproc)
 ```
 
+you should use clang++ to build.
+
 # Basic grammar examples
 
 preview in folder: [TestCase](/unittests/TestCase)
+
