@@ -12,13 +12,15 @@ namespace Cocktail {
 
 struct Success {};
 
-class [[nodiscard]] Error {
+class [[nodiscard]] Error : public Printable<Error> {
  public:
+  /// 生成错误状态。
   explicit Error(llvm::Twine location, llvm::Twine message)
       : location_(location.str()), message_(message.str()) {
     COCKTAIL_CHECK(!message_.empty()) << "Errors must have a message.";
   }
 
+  /// 生成不关联错误位置的错误状态。
   explicit Error(llvm::Twine message) : Error("", message) {}
 
   Error(Error&& other) noexcept
@@ -38,12 +40,15 @@ class [[nodiscard]] Error {
     out << message();
   }
 
+  /// 返回错误位置，错误位置的描述类似于"file.cc:123"。
   auto location() const -> const std::string& { return location_; }
 
   auto message() const -> const std::string& { return message_; }
 
  private:
+  // error出现的位置。
   std::string location_;
+  // 错误信息。
   std::string message_;
 };
 
@@ -123,19 +128,18 @@ class ErrorBuilder {
 
 }  // namespace Cocktail
 
-// Macro hackery to get a unique variable name.
+// 生成唯一的变量名。
 #define COCKTAIL_MAKE_UNIQUE_NAME_IMPL(a, b, c) a##b##c
 #define COCKTAIL_MAKE_UNIQUE_NAME(a, b, c) \
   COCKTAIL_MAKE_UNIQUE_NAME_IMPL(a, b, c)
 
-// Macro to prevent a top-level comma from being interpreted as a macro
-// argument separator.
+// 将参数包装在一对括号中，以防止逗号被误解。
 #define COCKTAIL_PROTECT_COMMAS(...) __VA_ARGS__
 
-#define COCKTAIL_RETURN_IF_ERROR_IMPL(unique_name, expr)                  \
-  if (auto unique_name = (expr); /* NOLINT(bugprone-macro-parentheses) */ \
-      !(unique_name).ok()) {                                              \
-    return std::move(unique_name).error();                                \
+// 用于处理函数中的错误检查和返回。
+#define COCKTAIL_RETURN_IF_ERROR_IMPL(unique_name, expr) \
+  if (auto unique_name = (expr); !(unique_name).ok()) {  \
+    return std::move(unique_name).error();               \
   }
 
 #define COCKTAIL_RETURN_IF_ERROR(expr)                                    \
@@ -143,12 +147,13 @@ class ErrorBuilder {
       COCKTAIL_MAKE_UNIQUE_NAME(_llvm_error_line, __LINE__, __COUNTER__), \
       COCKTAIL_PROTECT_COMMAS(expr))
 
-#define COCKTAIL_ASSIGN_OR_RETURN_IMPL(unique_name, var, expr)        \
-  auto unique_name = (expr); /* NOLINT(bugprone-macro-parentheses) */ \
-  if (!(unique_name).ok()) {                                          \
-    return std::move(unique_name).error();                            \
-  }                                                                   \
-  var = std::move(*(unique_name)); /* NOLINT(bugprone-macro-parentheses) */
+// 用于处理将表达式的结果分配给变量的情况，并处理错误。
+#define COCKTAIL_ASSIGN_OR_RETURN_IMPL(unique_name, var, expr) \
+  auto unique_name = (expr);                                   \
+  if (!(unique_name).ok()) {                                   \
+    return std::move(unique_name).error();                     \
+  }                                                            \
+  var = std::move(*(unique_name));
 
 #define COCKTAIL_ASSIGN_OR_RETURN(var, expr)                                 \
   COCKTAIL_ASSIGN_OR_RETURN_IMPL(                                            \
