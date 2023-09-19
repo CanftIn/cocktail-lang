@@ -7,44 +7,38 @@
 
 namespace Cocktail {
 
-template <typename T>
-class IndirectValue;
-
-template <typename Callable>
-auto CreateIndirectValue(Callable callable)
-    -> IndirectValue<std::decay_t<decltype(callable())>>;
-
+/// IndirectValue 主要用途之一是定义递归类型，防止无限嵌套。
 template <typename T>
 class IndirectValue {
  public:
-  IndirectValue() : value(std::make_unique<T>()) {}
+  IndirectValue() : value_(std::make_unique<T>()) {}
 
-  IndirectValue(T value) : value(std::make_unique<T>(std::move(value))) {}
+  IndirectValue(T value) : value_(std::make_unique<T>(std::move(value))) {}
 
   IndirectValue(const IndirectValue& other)
-      : value(std::make_unique<T>(*other)) {}
+      : value_(std::make_unique<T>(*other)) {}
 
   IndirectValue(IndirectValue&& other)
-      : value(std::make_unique<T>(std::move(*other))) {}
+      : value_(std::make_unique<T>(std::move(*other))) {}
 
   auto operator=(const IndirectValue& other) -> IndirectValue& {
-    *value = *other.value;
+    *value_ = *other.value_;
     return *this;
   }
 
   auto operator=(IndirectValue&& other) -> IndirectValue& {
-    *value = std::move(*other.value);
+    *value_ = std::move(*other.value_);
     return *this;
   }
 
-  auto operator*() -> T& { return *value; }
-  auto operator*() const -> const T& { return *value; }
+  auto operator*() -> T& { return *value_; }
+  auto operator*() const -> const T& { return *value_; }
 
-  auto operator->() -> T* { return value.get(); }
-  auto operator->() const -> const T* { return value.get(); }
+  auto operator->() -> T* { return value_.get(); }
+  auto operator->() const -> const T* { return value_.get(); }
 
-  auto GetPointer() -> T* { return value.get(); }
-  auto GetPointer() const -> const T* { return value.get(); }
+  auto GetPointer() -> T* { return value_.get(); }
+  auto GetPointer() const -> const T* { return value_.get(); }
 
  private:
   static_assert(std::is_object_v<T>, "T must be an object type");
@@ -54,9 +48,9 @@ class IndirectValue {
       -> IndirectValue<std::decay_t<decltype(callable())>>;
 
   template <typename... Args>
-  IndirectValue(std::unique_ptr<T> value) : value(std::move(value)) {}
+  IndirectValue(std::unique_ptr<T> value) : value_(std::move(value)) {}
 
-  const std::unique_ptr<T> value;
+  const std::unique_ptr<T> value_;
 };
 
 template <typename Callable>

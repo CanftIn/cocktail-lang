@@ -92,7 +92,7 @@ TEST(IndirectValueTest, Create) {
   EXPECT_EQ(v->i, 42);
 }
 
-const int& GetIntReference() {
+auto GetIntReference() -> const int& {
   static int i = 42;
   return i;
 }
@@ -103,19 +103,17 @@ TEST(IndirectValueTest, CreateWithDecay) {
   EXPECT_EQ(*v, 42);
 }
 
-// Test double which presents a value-like interface, but tracks which special
-// member function (if any) caused it to reach its present value.
 struct TestValue {
   TestValue() : state("default constructed") {}
   TestValue(const TestValue& rhs) : state("copy constructed") {}
   TestValue(TestValue&& other) : state("move constructed") {
     other.state = "move constructed from";
   }
-  TestValue& operator=(const TestValue&) {
+  auto operator=(const TestValue&) -> TestValue& {
     state = "copy assigned";
     return *this;
   }
-  TestValue& operator=(TestValue&& other) {
+  auto operator=(TestValue&& other) -> TestValue& {
     state = "move assigned";
     other.state = "move assigned from";
     return *this;
