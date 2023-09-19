@@ -6,12 +6,14 @@
 #include "Cocktail/Common/Check.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/ConvertUTF.h"
 
 namespace Cocktail {
 
-static constexpr llvm::StringRef TripleQuotes = R"(""")";
+static constexpr llvm::StringRef TripleQuotes = "'''";
 static constexpr llvm::StringRef HorizontalWhitespaceChars = " \t";
 
+/// 只使用大写的十六进制。
 static auto FromHex(char c) -> std::optional<char> {
   if (c >= '0' && c <= '9') {
     return c - '0';
@@ -22,84 +24,114 @@ static auto FromHex(char c) -> std::optional<char> {
   return std::nullopt;
 }
 
-auto UnescapeStringLiteral(llvm::StringRef source, bool is_block_string)
-    -> std::optional<std::string> {
+auto UnescapeStringLiteral(llvm::StringRef source, const int hashtag_num,
+                           bool is_block_string) -> std::optional<std::string> {
   std::string ret;
   ret.reserve(source.size());
+  std::string escape = "\\";
+  escape.resize(hashtag_num + 1, '#');
   size_t i = 0;
   while (i < source.size()) {
     char c = source[i];
-    switch (c) {
-      case '\\':
-        ++i;
-        if (i == source.size()) {
-          return std::nullopt;
-        }
-        switch (source[i]) {
-          case 'n':
-            ret.push_back('\n');
-            break;
-          case 'r':
-            ret.push_back('\r');
-            break;
-          case 't':
-            ret.push_back('\t');
-            break;
-          case '0':
-            if (i + 1 < source.size() && llvm::isDigit(source[i + 1])) {
-              // \0[0-9] is reserved.
-              return std::nullopt;
-            }
-            ret.push_back('\0');
-            break;
-          case '"':
-            ret.push_back('"');
-            break;
-          case '\'':
-            ret.push_back('\'');
-            break;
-          case '\\':
-            ret.push_back('\\');
-            break;
-          case 'x': {
-            i += 2;
-            if (i >= source.size()) {
-              return std::nullopt;
-            }
-            std::optional<char> c1 = FromHex(source[i - 1]);
-            std::optional<char> c2 = FromHex(source[i]);
-            if (c1 == std::nullopt || c2 == std::nullopt) {
-              return std::nullopt;
-            }
-            ret.push_back(16 * *c1 + *c2);
-            break;
-          }
-          case 'u':
-            COCKTAIL_FATAL() << "\\u is not yet supported in string literals";
-          case '\n':
-            if (!is_block_string) {
-              return std::nullopt;
-            }
-            break;
-          default:
-            // Unsupported.
-            return std::nullopt;
-        }
-        break;
-
-      case '\t':
+    if (i + hashtag_num < source.size() &&
+        source.slice(i, i + hashtag_num + 1).equals(escape)) {
+      i += hashtag_num + 1;
+      if (i == source.size()) {
         return std::nullopt;
-
-      default:
-        ret.push_back(c);
-        break;
+      }
+      switch (source[i]) {
+        case 'n':
+          ret.push_back('\n');
+          break;
+        case 'r':
+          ret.push_back('\r');
+          break;
+        case 't':
+          ret.push_back('\t');
+          break;
+        case '0':
+          if (i + 1 < source.size() && llvm::isDigit(source[i + 1])) {
+            // \0[0-9] is reserved.
+            return std::nullopt;
+          }
+          ret.push_back('\0');
+          break;
+        case '"':
+          ret.push_back('"');
+          break;
+        case '\'':
+          ret.push_back('\'');
+          break;
+        case '\\':
+          ret.push_back('\\');
+          break;
+        case 'x': {
+          i += 2;
+          if (i >= source.size()) {
+            return std::nullopt;
+          }
+          std::optional<char> c1 = FromHex(source[i - 1]);
+          std::optional<char> c2 = FromHex(source[i]);
+          if (c1 == std::nullopt || c2 == std::nullopt) {
+            return std::nullopt;
+          }
+          ret.push_back(16 * *c1 + *c2);
+          break;
+        }
+        case 'u': {
+          ++i;
+          if (i >= source.size() || source[i] != '{') {
+            return std::nullopt;
+          }
+          unsigned int unicode_int = 0;
+          ++i;
+          int original_i = i;
+          while (i < source.size() && source[i] != '}') {
+            std::optional<char> hex_val = FromHex(source[i]);
+            if (hex_val == std::nullopt) {
+              return std::nullopt;
+            }
+            unicode_int = unicode_int << 4;
+            unicode_int += hex_val.value();
+            ++i;
+            if (i - original_i > 8) {
+              return std::nullopt;
+            }
+          }
+          if (i >= source.size()) {
+            return std::nullopt;
+          }
+          if (i - original_i == 0) {
+            return std::nullopt;
+          }
+          char utf8_buf[4];
+          char* utf8_end = &utf8_buf[0];
+          if (!llvm::ConvertCodePointToUTF8(unicode_int, utf8_end)) {
+            return std::nullopt;
+          }
+          ret.append(utf8_buf, utf8_end - utf8_buf);
+          break;
+        }
+        case '\n':
+          if (!is_block_string) {
+            return std::nullopt;
+          }
+          break;
+        default:
+          return std::nullopt;
+      }
+    } else if (c == '\t') {
+      return std::nullopt;
+    } else {
+      ret.push_back(c);
     }
     ++i;
   }
   return ret;
 }
 
-auto ParseBlockStringLiteral(llvm::StringRef source) -> ErrorOr<std::string> {
+auto ParseBlockStringLiteral(llvm::StringRef source, const int hashtag_num)
+    -> ErrorOr<std::string> {
   llvm::SmallVector<llvm::StringRef> lines;
   source.split(lines, '\n', /*MaxSplit=*/-1, /*KeepEmpty=*/true);
   if (lines.size() < 2) {
@@ -111,6 +143,7 @@ auto ParseBlockStringLiteral(llvm::StringRef source) -> ErrorOr<std::string> {
     return Error("Should start with triple quotes: " + first);
   }
   first = first.rtrim(HorizontalWhitespaceChars);
+  // Remaining chars, if any, are a file type indicator.
   if (first.find_first_of("\"#") != llvm::StringRef::npos ||
       first.find_first_of(HorizontalWhitespaceChars) != llvm::StringRef::npos) {
     return Error("Invalid characters in file type indicator: " + first);
@@ -130,6 +163,7 @@ auto ParseBlockStringLiteral(llvm::StringRef source) -> ErrorOr<std::string> {
     const size_t first_non_ws =
         line.find_first_not_of(HorizontalWhitespaceChars);
     if (first_non_ws == llvm::StringRef::npos) {
+      // Empty or whitespace-only line.
       line = "";
     } else {
       if (first_non_ws < indent) {
@@ -138,12 +172,15 @@ auto ParseBlockStringLiteral(llvm::StringRef source) -> ErrorOr<std::string> {
       }
       line = line.drop_front(indent).rtrim(HorizontalWhitespaceChars);
     }
+    // Unescaping with \n appended to handle things like \\<newline>.
     llvm::SmallVector<char> buffer;
-    std::optional<std::string> unescaped = UnescapeStringLiteral(
-        (line + "\n").toStringRef(buffer), /*is_block_string=*/true);
+    std::optional<std::string> unescaped =
+        UnescapeStringLiteral((line + "\n").toStringRef(buffer), hashtag_num,
+                              /*is_block_string=*/true);
     if (!unescaped.has_value()) {
       return Error("Invalid escaping in " + line);
     }
+    // A \<newline> string collapses into nothing.
     if (!unescaped->empty()) {
       parsed.append(*unescaped);
     }
@@ -152,7 +189,7 @@ auto ParseBlockStringLiteral(llvm::StringRef source) -> ErrorOr<std::string> {
 }
 
 auto StringRefContainsPointer(llvm::StringRef ref, const char* ptr) -> bool {
-  auto le = std::less_equal<const char*>();
+  auto le = std::less_equal<>();
   return le(ref.begin(), ptr) && le(ptr, ref.end());
 }
 
