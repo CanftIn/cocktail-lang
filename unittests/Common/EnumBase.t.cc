@@ -99,5 +99,4 @@ TEST(EnumBaseTest, IntConversion) {
 }
 
 }  // namespace
-
 }  // namespace Cocktail

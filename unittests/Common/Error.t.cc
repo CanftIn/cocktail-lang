@@ -2,9 +2,8 @@
 
 #include <gtest/gtest.h>
 
+namespace Cocktail {
 namespace {
-
-using namespace Cocktail;
 
 TEST(ErrorTest, Error) {
   Error err("test");
@@ -107,3 +106,4 @@ TEST(ErrorTest, ErrorBuilderOperatorImplicitCast) {
 }
 
 }  // namespace
+}  // namespace Cocktail

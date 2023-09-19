@@ -4,9 +4,8 @@
 
 #include "llvm/Support/raw_ostream.h"
 
+namespace Cocktail {
 namespace {
-
-using namespace Cocktail;
 
 TEST(MetaProgrammingTest, RequiresBasic) {
   bool result = Requires<int, int>([](int a, int b) { return a + b; });
@@ -24,3 +23,4 @@ TEST(MetaProgrammingTest, RequiresPrintMethod) {
 }
 
 }  // namespace
+}  // namespace Cocktail

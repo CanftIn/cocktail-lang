@@ -2,15 +2,14 @@
 
 #include <gtest/gtest.h>
 
+namespace Cocktail {
 namespace {
-
-using namespace Cocktail;
 
 TEST(CheckTest, CheckTrue) { COCKTAIL_CHECK(true); }
 
 TEST(CheckTest, CheckFalse) {
   ASSERT_DEATH({ COCKTAIL_CHECK(false); },
-               "CHECK failure at " + std::string(__FILE__) + ":12: false");
+               "CHECK failure at " + std::string(__FILE__) + ":11: false");
 }
 
 TEST(CheckTest, CheckTrueCallbackNotUsed) {
@@ -25,7 +24,7 @@ TEST(CheckTest, CheckTrueCallbackNotUsed) {
 
 TEST(CheckTest, CheckFalseMessage) {
   ASSERT_DEATH({ COCKTAIL_CHECK(false) << "msg"; },
-               "CHECK failure at " + std::string(__FILE__) + ":27: false: msg");
+               "CHECK failure at " + std::string(__FILE__) + ":26: false: msg");
 }
 
 TEST(CheckTest, CheckOutputForms) {
@@ -37,7 +36,8 @@ TEST(CheckTest, CheckOutputForms) {
 
 TEST(CheckTest, Fatal) {
   ASSERT_DEATH({ COCKTAIL_FATAL() << "msg"; },
-               "FATAL failure at " + std::string(__FILE__) + ":39: msg");
+               "FATAL failure at " + std::string(__FILE__) + ":38: msg");
 }
 
 }  // namespace
+}  // namespace Cocktail

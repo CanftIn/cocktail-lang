@@ -3,6 +3,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+namespace Cocktail {
 namespace {
 
 using ::testing::IsEmpty;
@@ -39,3 +40,4 @@ TEST(VLogTest, Disabled) {
 }
 
 }  // namespace
+}  // namespace Cocktail

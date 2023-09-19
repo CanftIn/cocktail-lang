@@ -4,9 +4,8 @@
 
 #include <string>
 
+namespace Cocktail {
 namespace {
-
-using namespace Cocktail;
 
 TEST(IndirectValueTest, DefaultConstructor) {
   IndirectValue<std::string> value;
@@ -173,3 +172,4 @@ TEST(IndirectValueTest, IncompleteType) {
 }
 
 }  // namespace
+}  // namespace Cocktail
