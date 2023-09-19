@@ -17,9 +17,9 @@ ExitingStream::~ExitingStream() {
 }
 
 auto ExitingStream::Done() -> void {
-  buffer << "\n";
+  buffer_ << "\n";
   llvm::sys::AddSignalHandler(PrintAfterStackTrace,
-                              const_cast<char*>(buffer_str.c_str()));
+                              const_cast<char*>(buffer_str_.c_str()));
   std::abort();
 }
 

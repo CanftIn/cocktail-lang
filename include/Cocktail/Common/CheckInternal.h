@@ -12,7 +12,7 @@ class ExitingStream {
 
   struct Helper {};
 
-  ExitingStream() : buffer(buffer_str) {}
+  ExitingStream() : buffer_(buffer_str_) {}
 
   [[noreturn]] ~ExitingStream();
 
@@ -20,16 +20,16 @@ class ExitingStream {
 
   template <typename T>
   auto operator<<(const T& message) -> ExitingStream& {
-    if (separator) {
-      buffer << ": ";
-      separator = false;
+    if (separator_) {
+      buffer_ << ": ";
+      separator_ = false;
     }
-    buffer << message;
+    buffer_ << message;
     return *this;
   }
 
   auto operator<<(AddSeparator /*unused*/) -> ExitingStream& {
-    separator = true;
+    separator_ = true;
     return *this;
   }
 
@@ -41,10 +41,10 @@ class ExitingStream {
  private:
   [[noreturn]] auto Done() -> void;
 
-  bool separator = false;
+  bool separator_ = false;
 
-  std::string buffer_str;
-  llvm::raw_string_ostream buffer;
+  std::string buffer_str_;
+  llvm::raw_string_ostream buffer_;
 };
 
 }  // namespace Cocktail::Internal
