@@ -1,4 +1,4 @@
-#include "Cocktail/Lexer/TokenKind.h"
+#include "Cocktail/Lex/TokenKind.h"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -7,9 +7,9 @@
 
 #include "llvm/ADT/StringRef.h"
 
+namespace Cocktail {
 namespace {
 
-using namespace Cocktail;
 using ::testing::MatchesRegex;
 
 constexpr llvm::StringLiteral SymbolRegex = "[][{}!@#%^&*()/?\\|;:.,<>=+~-]+";
@@ -68,7 +68,7 @@ constexpr llvm::StringLiteral KeywordRegex = "[a-z_]+";
     EXPECT_EQ(Spelling, TokenKind::TokenName().GetFixedSpelling()); \
     EXPECT_THAT(Spelling, MatchesRegex(KeywordRegex.str()));        \
   }
-#include "Cocktail/Lexer/TokenRegistry.def"
+#include "Cocktail/Lex/TokenKind.def"
 
 TEST(TokenKindTest, SymbolsInDescendingLength) {
   int previous_length = INT_MAX;
@@ -76,8 +76,9 @@ TEST(TokenKindTest, SymbolsInDescendingLength) {
   EXPECT_LE(llvm::StringRef(Spelling).size(), previous_length)          \
       << "Symbol token not in descending length order: " << #TokenName; \
   previous_length = llvm::StringRef(Spelling).size();
-#include "Cocktail/Lexer/TokenRegistry.def"
+#include "Cocktail/Lex/TokenKind.def"
   EXPECT_GT(previous_length, 0);
 }
 
 }  // namespace
+}  // namespace Cocktail
