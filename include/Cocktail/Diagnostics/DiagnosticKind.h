@@ -1,31 +1,28 @@
 #ifndef COCKTAIL_DIAGNOSTIC_DIAGNOSTIC_KIND_H
 #define COCKTAIL_DIAGNOSTIC_DIAGNOSTIC_KIND_H
 
-#include "Cocktail/Common/Ostream.h"
-#include "llvm/ADT/StringRef.h"
+#include "Cocktail/Common/EnumBase.h"
 
 namespace Cocktail {
 
-enum class DiagnosticKind : uint32_t {
-#define DIAGNOSTIC_KIND(Name) Name,
-#include "Cocktail/Diagnostics/DiagnosticRegistry.def"
+COCKTAIL_DEFINE_RAW_ENUM_CLASS(DiagnosticKind, uint16_t) {
+#define COCKTAIL_DIAGNOSTIC_KIND(Name) COCKTAIL_RAW_ENUM_ENUMERATOR(Name)
+#include "Cocktail/Diagnostics/DiagnosticKind.def"
 };
 
-inline auto operator<<(llvm::raw_ostream& out, DiagnosticKind kind)
-    -> llvm::raw_ostream& {
-  static constexpr llvm::StringLiteral Names[] = {
-#define DIAGNOSTIC_KIND(Name) #Name,
-#include "Cocktail/Diagnostics/DiagnosticRegistry.def"
-  };
-  out << Names[static_cast<uint32_t>(kind)];
-  return out;
-}
+/// 用于表示工具链提供的所有诊断类型。
+class DiagnosticKind : public COCKTAIL_ENUM_BASE(DiagnosticKind) {
+ public:
+#define COCKTAIL_DIAGNOSTIC_KIND(Name) COCKTAIL_ENUM_CONSTANT_DECLARATION(Name)
+#include "Cocktail/Diagnostics/DiagnosticKind.def"
+};
 
-inline auto operator<<(std::ostream& out, DiagnosticKind kind)
-    -> std::ostream& {
-  llvm::raw_os_ostream(out) << kind;
-  return out;
-}
+#define COCKTAIL_DIAGNOSTIC_KIND(Name) \
+  COCKTAIL_ENUM_CONSTANT_DEFINITION(DiagnosticKind, Name)
+#include "Cocktail/Diagnostics/DiagnosticKind.def"
+
+// 使用静态断言来确保DiagnosticKind的大小是2字节，以确保没有填充。
+static_assert(sizeof(DiagnosticKind) == 2, "DiagnosticKind includes padding!");
 
 }  // namespace Cocktail
 

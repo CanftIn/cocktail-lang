@@ -1,0 +1,133 @@
+#ifndef COCKTAIL_DIAGNOSTIC_KIND
+#error "Must define the x-macro to use this file."
+#endif
+
+// ============================================================================
+// SourceBuffer diagnostics
+// ============================================================================
+
+COCKTAIL_DIAGNOSTIC_KIND(ErrorOpeningFile)
+COCKTAIL_DIAGNOSTIC_KIND(ErrorStattingFile)
+COCKTAIL_DIAGNOSTIC_KIND(FileTooLarge)
+COCKTAIL_DIAGNOSTIC_KIND(ErrorReadingFile)
+
+// ============================================================================
+// Lexer diagnostics
+// ============================================================================
+
+COCKTAIL_DIAGNOSTIC_KIND(BinaryRealLiteral)
+COCKTAIL_DIAGNOSTIC_KIND(ContentBeforeStringTerminator)
+COCKTAIL_DIAGNOSTIC_KIND(DecimalEscapeSequence)
+COCKTAIL_DIAGNOSTIC_KIND(EmptyDigitSequence)
+COCKTAIL_DIAGNOSTIC_KIND(HexadecimalEscapeMissingDigits)
+COCKTAIL_DIAGNOSTIC_KIND(InvalidDigit)
+COCKTAIL_DIAGNOSTIC_KIND(InvalidDigitSeparator)
+COCKTAIL_DIAGNOSTIC_KIND(InvalidHorizontalWhitespaceInString)
+COCKTAIL_DIAGNOSTIC_KIND(IrregularDigitSeparators)
+COCKTAIL_DIAGNOSTIC_KIND(MismatchedClosing)
+COCKTAIL_DIAGNOSTIC_KIND(MismatchedIndentInString)
+COCKTAIL_DIAGNOSTIC_KIND(MultiLineStringWithDoubleQuotes)
+COCKTAIL_DIAGNOSTIC_KIND(NoWhitespaceAfterCommentIntroducer)
+COCKTAIL_DIAGNOSTIC_KIND(TooManyDigits)
+COCKTAIL_DIAGNOSTIC_KIND(TrailingComment)
+COCKTAIL_DIAGNOSTIC_KIND(UnicodeEscapeMissingBracedDigits)
+COCKTAIL_DIAGNOSTIC_KIND(UnicodeEscapeSurrogate)
+COCKTAIL_DIAGNOSTIC_KIND(UnicodeEscapeTooLarge)
+COCKTAIL_DIAGNOSTIC_KIND(UnknownBaseSpecifier)
+COCKTAIL_DIAGNOSTIC_KIND(UnknownEscapeSequence)
+COCKTAIL_DIAGNOSTIC_KIND(UnmatchedClosing)
+COCKTAIL_DIAGNOSTIC_KIND(UnrecognizedCharacters)
+COCKTAIL_DIAGNOSTIC_KIND(UnterminatedString)
+COCKTAIL_DIAGNOSTIC_KIND(WrongRealLiteralExponent)
+
+// ============================================================================
+// Parser diagnostics
+// ============================================================================
+
+COCKTAIL_DIAGNOSTIC_KIND(BinaryOperatorRequiresWhitespace)
+COCKTAIL_DIAGNOSTIC_KIND(ExpectedArraySemi)
+COCKTAIL_DIAGNOSTIC_KIND(ExpectedCloseSymbol)
+COCKTAIL_DIAGNOSTIC_KIND(ExpectedCodeBlock)
+COCKTAIL_DIAGNOSTIC_KIND(ExpectedExpression)
+COCKTAIL_DIAGNOSTIC_KIND(ExpectedIdentifierAfterDotOrArrow)
+COCKTAIL_DIAGNOSTIC_KIND(ExpectedParameterName)
+COCKTAIL_DIAGNOSTIC_KIND(ExpectedParenAfter)
+COCKTAIL_DIAGNOSTIC_KIND(ExpectedExpressionSemi)
+COCKTAIL_DIAGNOSTIC_KIND(ExpectedStatementSemi)
+COCKTAIL_DIAGNOSTIC_KIND(ExpectedStructLiteralField)
+COCKTAIL_DIAGNOSTIC_KIND(ExpectedVariableDeclaration)
+COCKTAIL_DIAGNOSTIC_KIND(ExpectedVariableName)
+COCKTAIL_DIAGNOSTIC_KIND(OperatorRequiresParentheses)
+COCKTAIL_DIAGNOSTIC_KIND(StatementOperatorAsSubexpression)
+COCKTAIL_DIAGNOSTIC_KIND(UnaryOperatorRequiresParentheses)
+COCKTAIL_DIAGNOSTIC_KIND(UnaryOperatorHasWhitespace)
+COCKTAIL_DIAGNOSTIC_KIND(UnaryOperatorRequiresWhitespace)
+COCKTAIL_DIAGNOSTIC_KIND(UnexpectedTokenAfterListElement)
+COCKTAIL_DIAGNOSTIC_KIND(UnrecognizedDeclaration)
+
+// Package-related diagnostics.
+COCKTAIL_DIAGNOSTIC_KIND(ExpectedIdentifierAfterPackage)
+COCKTAIL_DIAGNOSTIC_KIND(ExpectedLibraryName)
+COCKTAIL_DIAGNOSTIC_KIND(MissingLibraryKeyword)
+COCKTAIL_DIAGNOSTIC_KIND(ExpectedApiOrImpl)
+
+// For-specific diagnostics.
+COCKTAIL_DIAGNOSTIC_KIND(ExpectedIn)
+COCKTAIL_DIAGNOSTIC_KIND(ExpectedInNotColon)
+
+// If-specific diagnostics.
+COCKTAIL_DIAGNOSTIC_KIND(ExpectedThenAfterIf)
+COCKTAIL_DIAGNOSTIC_KIND(ExpectedElseAfterIf)
+
+// Declaration diagnostics.
+COCKTAIL_DIAGNOSTIC_KIND(ExpectedDeclarationName)
+COCKTAIL_DIAGNOSTIC_KIND(ExpectedDeclarationSemi)
+COCKTAIL_DIAGNOSTIC_KIND(ExpectedDeclarationSemiOrDefinition)
+COCKTAIL_DIAGNOSTIC_KIND(MethodImplNotAllowed)
+COCKTAIL_DIAGNOSTIC_KIND(ParametersRequiredByIntroducer)
+COCKTAIL_DIAGNOSTIC_KIND(ParametersRequiredByDeduced)
+
+// ============================================================================
+// Semantics diagnostics
+// ============================================================================
+
+COCKTAIL_DIAGNOSTIC_KIND(SemanticsTodo)
+
+COCKTAIL_DIAGNOSTIC_KIND(AddressOfEphemeralReference)
+COCKTAIL_DIAGNOSTIC_KIND(AddressOfNonReference)
+COCKTAIL_DIAGNOSTIC_KIND(ArrayInitFromLiteralArgCountMismatch)
+COCKTAIL_DIAGNOSTIC_KIND(ArrayInitFromExpressionArgCountMismatch)
+COCKTAIL_DIAGNOSTIC_KIND(AssignmentToNonAssignable)
+COCKTAIL_DIAGNOSTIC_KIND(DereferenceOfNonPointer)
+COCKTAIL_DIAGNOSTIC_KIND(DereferenceOfType)
+COCKTAIL_DIAGNOSTIC_KIND(NameNotFound)
+COCKTAIL_DIAGNOSTIC_KIND(NameDeclarationDuplicate)
+COCKTAIL_DIAGNOSTIC_KIND(NameDeclarationPrevious)
+COCKTAIL_DIAGNOSTIC_KIND(CallArgCountMismatch)
+COCKTAIL_DIAGNOSTIC_KIND(InCallToFunction)
+COCKTAIL_DIAGNOSTIC_KIND(InCallToFunctionParam)
+COCKTAIL_DIAGNOSTIC_KIND(MissingReturnStatement)
+COCKTAIL_DIAGNOSTIC_KIND(RepeatedConst)
+COCKTAIL_DIAGNOSTIC_KIND(InvalidArrayExpression)
+COCKTAIL_DIAGNOSTIC_KIND(TypeNotIndexable)
+COCKTAIL_DIAGNOSTIC_KIND(IndexOutOfBounds)
+COCKTAIL_DIAGNOSTIC_KIND(TupleIndexIntegerLiteral)
+COCKTAIL_DIAGNOSTIC_KIND(ReturnStatementDisallowExpression)
+COCKTAIL_DIAGNOSTIC_KIND(ReturnStatementImplicitNote)
+COCKTAIL_DIAGNOSTIC_KIND(ReturnStatementMissingExpression)
+COCKTAIL_DIAGNOSTIC_KIND(ImplicitAsConversionFailure)
+COCKTAIL_DIAGNOSTIC_KIND(QualifiedDeclarationInNonScope)
+COCKTAIL_DIAGNOSTIC_KIND(QualifiedDeclarationNonScopeEntity)
+COCKTAIL_DIAGNOSTIC_KIND(QualifiedExpressionUnsupported)
+COCKTAIL_DIAGNOSTIC_KIND(QualifiedExpressionNameNotFound)
+COCKTAIL_DIAGNOSTIC_KIND(UseOfNonExpressionAsValue)
+
+// ============================================================================
+// Other diagnostics
+// ============================================================================
+
+// TestDiagnostic is only for unit tests.
+COCKTAIL_DIAGNOSTIC_KIND(TestDiagnostic)
+COCKTAIL_DIAGNOSTIC_KIND(TestDiagnosticNote)
+
+#undef COCKTAIL_DIAGNOSTIC_KIND

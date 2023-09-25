@@ -20,7 +20,7 @@ inline auto NullDiagnosticLocationTranslator()
 
 inline auto NullDiagnosticConsumer() -> DiagnosticConsumer& {
   struct Consumer : DiagnosticConsumer {
-    auto HandleDiagnostic(const Diagnostic& /*unused*/) -> void override {}
+    auto HandleDiagnostic(Diagnostic /*unused*/) -> void override {}
   };
   static auto* consumer = new Consumer();
   return *consumer;
