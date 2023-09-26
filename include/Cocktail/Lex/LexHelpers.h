@@ -1,15 +1,16 @@
-#ifndef COCKTAIL_LEXER_LEX_HELPERS_H
-#define COCKTAIL_LEXER_LEX_HELPERS_H
+#ifndef COCKTAIL_LEX_LEX_HELPERS_H
+#define COCKTAIL_LEX_LEX_HELPERS_H
 
 #include "Cocktail/Diagnostics/DiagnosticEmitter.h"
 
-namespace Cocktail {
+namespace Cocktail::Lex {
 
-// Should guard calls to getAsInteger due to performance issues with large
-// integers. Emits an error if the text cannot be lexed.
+// 检查是否可以对给定的文本（字符串）进行整数词法分析（即将字符串转换为整数）。
+// 使用`llvm::getAsInteger`进行解析可能在大整数值上表现得非常慢。
+// 因此函数内部设置了一个数值大小的限制。
 auto CanLexInteger(DiagnosticEmitter<const char*>& emitter,
                    llvm::StringRef text) -> bool;
 
 }  // namespace Cocktail
 
-#endif  // COCKTAIL_LEXER_LEX_HELPERS_H
+#endif  // COCKTAIL_LEX_LEX_HELPERS_H

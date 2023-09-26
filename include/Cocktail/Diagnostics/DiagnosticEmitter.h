@@ -24,7 +24,7 @@ enum class DiagnosticLevel : int8_t {
 // 用于创建诊断。
 #define COCKTAIL_DIAGNOSTIC(DiagnosticName, Level, Format, ...) \
   static constexpr auto DiagnosticName =                        \
-      ::CocktailInternal::DiagnosticBase<__VA_ARGS__>(          \
+      ::Cocktail::Internal::DiagnosticBase<__VA_ARGS__>(        \
           ::Cocktail::DiagnosticKind::DiagnosticName,           \
           ::Cocktail::DiagnosticLevel::Level, Format)
 
@@ -330,7 +330,7 @@ class ErrorTrackingDiagnosticConsumer : public DiagnosticConsumer {
 /// 这是一个 RAII对象，用于标记在其作用范围内应以某种方式注释任何生成的诊断。
 ///
 /// 这个对象被赋予一个函数 annotate，该函数将在通过给定的发射器发出任何诊断时
-/// 与 DiagnosticBuilder& builder 一起调用。该函数可以通过调用 builder.Note 
+/// 与 DiagnosticBuilder& builder 一起调用。该函数可以通过调用 builder.Note
 /// 来添加注释以注释诊断。
 template <typename LocationT, typename AnnotateFn>
 class DiagnosticAnnotationScope
