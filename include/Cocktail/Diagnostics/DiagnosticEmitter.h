@@ -5,6 +5,7 @@
 #include <string>
 #include <utility>
 
+#include "Cocktail/Common/Check.h"
 #include "Cocktail/Diagnostics/DiagnosticKind.h"
 #include "llvm/ADT/Any.h"
 #include "llvm/ADT/STLExtras.h"
@@ -31,7 +32,7 @@ enum class DiagnosticLevel : int8_t {
 /// 用于表示诊断在文件中的位置。
 struct DiagnosticLocation {
   // 此诊断所引用的文件或缓冲区的名称。
-  std::string file_name;
+  llvm::StringRef file_name;
   // 对错误行的引用。
   llvm::StringRef line;
   // 以1为基础的行号。

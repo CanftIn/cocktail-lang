@@ -1,119 +1,65 @@
 #include "Cocktail/Source/SourceBuffer.h"
 
-#include <fcntl.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
-#include <cassert>
-#include <cerrno>
 #include <limits>
-#include <system_error>
 
-#include "Cocktail/Common/Check.h"
-#include "llvm/ADT/ScopeExit.h"
-#include "llvm/Support/Error.h"
+#include "llvm/Support/ErrorOr.h"
 
 namespace Cocktail {
-
-static auto CheckContentSize(int64_t size) -> llvm::Error {
-  if (size < std::numeric_limits<int32_t>::max()) {
-    return llvm::Error::success();
+namespace {
+struct FilenameTranslator : DiagnosticLocationTranslator<llvm::StringRef> {
+  auto GetLocation(llvm::StringRef filename) -> DiagnosticLocation override {
+    return {.file_name = filename};
   }
-  return llvm::createStringError(llvm::inconvertibleErrorCode(),
-                                 "Input too large!");
-}
+};
+}  // namespace
 
-auto SourceBuffer::CreateFromText(llvm::Twine text, llvm::StringRef filename)
-    -> llvm::Expected<SourceBuffer> {
-  std::string buffer = text.str();
-  auto size_check = CheckContentSize(buffer.size());
-  if (size_check) {
-    return std::move(size_check);
-  }
-  return SourceBuffer(filename.str(), std::move(buffer));
-}
+auto SourceBuffer::CreateFromFile(llvm::vfs::FileSystem& fs,
+                                  llvm::StringRef filename,
+                                  DiagnosticConsumer& consumer)
+    -> std::optional<SourceBuffer> {
+  FilenameTranslator translator;
+  DiagnosticEmitter<llvm::StringRef> emitter(translator, consumer);
 
-static auto ErrnoToError(int errno_value) -> llvm::Error {
-  return llvm::errorCodeToError(
-      std::error_code(errno_value, std::generic_category()));
-}
-
-auto SourceBuffer::CreateFromFile(llvm::StringRef filename)
-    -> llvm::Expected<SourceBuffer> {
-  std::string filename_str = filename.str();
-
-  errno = 0;
-  int file_descriptor = open(filename_str.c_str(), O_RDONLY);
-  if (file_descriptor == -1) {
-    return ErrnoToError(errno);
+  // 打开文件。
+  llvm::ErrorOr<std::unique_ptr<llvm::vfs::File>> file =
+      fs.openFileForRead(filename);
+  if (file.getError()) {
+    COCKTAIL_DIAGNOSTIC(ErrorOpeningFile, Error,
+                        "Error opening file for read: {0}", std::string);
+    emitter.Emit(filename, ErrorOpeningFile, file.getError().message());
+    return std::nullopt;
   }
 
-  auto closer =
-      llvm::make_scope_exit([file_descriptor] { close(file_descriptor); });
-
-  struct stat stat_buffer = {};
-  errno = 0;
-  if (fstat(file_descriptor, &stat_buffer) == -1) {
-    return ErrnoToError(errno);
+  // 获取文件状态。
+  llvm::ErrorOr<llvm::vfs::Status> status = (*file)->status();
+  if (status.getError()) {
+    COCKTAIL_DIAGNOSTIC(ErrorStattingFile, Error, "Error statting file: {0}",
+                        std::string);
+    emitter.Emit(filename, ErrorStattingFile, file.getError().message());
+    return std::nullopt;
   }
 
-  int64_t size = stat_buffer.st_size;
-  if (size == 0) {
-    return SourceBuffer(std::move(filename_str), std::string());
-  }
-  auto size_check = CheckContentSize(size);
-  if (size_check) {
-    return std::move(size_check);
-  }
-
-  errno = 0;
-  void* mapped_text = mmap(nullptr, size, PROT_READ, MAP_PRIVATE,
-                           file_descriptor, /*offset=*/0);
-  if (mapped_text == MAP_FAILED) {
-    return ErrnoToError(errno);
+  // 检查文件大小。
+  int64_t size = status->getSize();
+  if (size >= std::numeric_limits<int32_t>::max()) {
+    COCKTAIL_DIAGNOSTIC(FileTooLarge, Error,
+                        "File is over the 2GiB input limit; size is {0} bytes.",
+                        int64_t);
+    emitter.Emit(filename, FileTooLarge, size);
+    return std::nullopt;
   }
 
-  errno = 0;
-  closer.release();
-  if (close(file_descriptor) == -1) {
-    munmap(mapped_text, size);
-    return ErrnoToError(errno);
+  // 获取文件缓冲区。
+  llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> buffer =
+      (*file)->getBuffer(filename, size, /*RequiresNullTerminator=*/false);
+  if (buffer.getError()) {
+    COCKTAIL_DIAGNOSTIC(ErrorReadingFile, Error, "Error reading file: {0}",
+                        std::string);
+    emitter.Emit(filename, ErrorReadingFile, file.getError().message());
+    return std::nullopt;
   }
 
-  return SourceBuffer(
-      std::move(filename_str),
-      llvm::StringRef(static_cast<const char*>(mapped_text), size));
-}
-SourceBuffer::SourceBuffer(SourceBuffer&& arg) noexcept
-    : content_mode_(
-          std::exchange(arg.content_mode_, ContentMode::Uninitialized)),
-      filename_(std::move(arg.filename_)),
-      text_storage_(std::move(arg.text_storage_)),
-      text_(content_mode_ == ContentMode::Owned ? text_storage_ : arg.text_) {}
-
-SourceBuffer::SourceBuffer(std::string filename, std::string text)
-    : content_mode_(ContentMode::Owned),
-      filename_(std::move(filename)),
-      text_storage_(std::move(text)),
-      text_(text_storage_) {}
-
-SourceBuffer::SourceBuffer(std::string filename, llvm::StringRef text)
-    : content_mode_(ContentMode::MMapped),
-      filename_(std::move(filename)),
-      text_(text) {
-  COCKTAIL_CHECK(!text.empty())
-      << "Must not have an empty text when we have mapped data from a file!";
-}
-
-SourceBuffer::~SourceBuffer() {
-  if (content_mode_ == ContentMode::MMapped) {
-    errno = 0;
-    int result =
-        munmap(const_cast<void*>(static_cast<const void*>(text_.data())),
-               text_.size());
-    COCKTAIL_CHECK(result != -1) << "Unmapping text failed!";
-  }
+  return SourceBuffer(filename.str(), std::move(buffer.get()));
 }
 
 }  // namespace Cocktail

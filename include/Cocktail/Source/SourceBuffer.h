@@ -1,51 +1,43 @@
 #ifndef COCKTAIL_SOURCE_SOURCE_BUFFER_H
 #define COCKTAIL_SOURCE_SOURCE_BUFFER_H
 
+#include <memory>
+#include <optional>
 #include <string>
-#include <utility>
 
+#include "Cocktail/Diagnostics/DiagnosticEmitter.h"
 #include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/Twine.h"
-#include "llvm/Support/Error.h"
+#include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Support/VirtualFileSystem.h"
 
 namespace Cocktail {
 
 class SourceBuffer {
  public:
-  static auto CreateFromText(llvm::Twine text,
-                             llvm::StringRef filename = "/text")
-      -> llvm::Expected<SourceBuffer>;
-  static auto CreateFromFile(llvm::StringRef filename)
-      -> llvm::Expected<SourceBuffer>;
+  // 用于从指定的文件名打开一个文件。
+  static auto CreateFromFile(llvm::vfs::FileSystem& fs,
+                             llvm::StringRef filename,
+                             DiagnosticConsumer& consumer)
+      -> std::optional<SourceBuffer>;
 
+  // 用上面的工厂函数来创建一个源缓冲区。
   SourceBuffer() = delete;
 
-  SourceBuffer(const SourceBuffer&) = delete;
-
-  SourceBuffer(SourceBuffer&& arg) noexcept;
-
-  ~SourceBuffer();
-
+  // 返回源文件的名称。
   [[nodiscard]] auto filename() const -> llvm::StringRef { return filename_; }
 
-  [[nodiscard]] auto text() const -> llvm::StringRef { return text_; }
+  // 返回源代码文本的引用。
+  [[nodiscard]] auto text() const -> llvm::StringRef {
+    return text_->getBuffer();
+  }
 
  private:
-  enum class ContentMode {
-    Uninitialized,
-    MMapped,
-    Owned,
-  };
+  explicit SourceBuffer(std::string filename,
+                        std::unique_ptr<llvm::MemoryBuffer> text)
+      : filename_(std::move(filename)), text_(std::move(text)) {}
 
-  // Constructor for mmapped content.
-  explicit SourceBuffer(std::string filename, llvm::StringRef text);
-  // Constructor for owned content.
-  explicit SourceBuffer(std::string filename, std::string text);
-
-  ContentMode content_mode_;
-  std::string filename_;
-  std::string text_storage_;
-  llvm::StringRef text_;
+  std::string filename_;                      // 存储源文件的名称。
+  std::unique_ptr<llvm::MemoryBuffer> text_;  // 存储源代码文本。
 };
 
 }  // namespace Cocktail
