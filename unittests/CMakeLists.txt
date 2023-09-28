@@ -6,6 +6,7 @@ set(memcheck_command
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND})
 
 add_subdirectory(Common)
+add_subdirectory(LexNew)
 # add_subdirectory(Lex)
 # add_subdirectory(Parser)
 add_subdirectory(Source)

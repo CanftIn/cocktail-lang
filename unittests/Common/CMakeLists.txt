@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.20)
-
 file(GLOB UNITTESTS_LIST *.cc)
 
 foreach(FILE_PATH ${UNITTESTS_LIST})
@@ -13,6 +11,4 @@ foreach(FILE_PATH ${UNITTESTS_LIST})
       cocktailCommon
     )
   add_test(${FILE_NAME} ${FILE_NAME})
-  #add_dependencies(check ${FILE_NAME})
-  #add_test(${FILE_NAME}-memory-check ${memcheck_command} ./${FILE_NAME})
 endforeach()
