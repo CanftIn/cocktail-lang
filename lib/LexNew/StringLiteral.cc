@@ -1,4 +1,4 @@
-#include "Cocktail/Lex/StringLiteral.h"
+#include "Cocktail/LexNew/StringLiteral.h"
 
 #include "Cocktail/Common/CharacterSet.h"
 #include "Cocktail/Common/Check.h"
