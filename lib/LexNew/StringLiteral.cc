@@ -43,7 +43,7 @@ auto StringLiteral::Introducer::Lex(llvm::StringRef source_text)
 
   if (kind != NotMultiLine) {
     // 检查其余部分是否是一个有效的文件类型指示符。
-    // 这是一个不包含 # 或 " 的字符序列，后面跟着一个换行符。
+    // 有效的文件类型指示符是一个不包含 # 或 " 的字符序列，后面跟着一个换行符。
     auto prefix_end = source_text.find_first_of("#\n\"", indicator.size());
     if (prefix_end != llvm::StringRef::npos &&
         source_text[prefix_end] == '\n') {
@@ -102,7 +102,9 @@ auto StringLiteral::Lex(llvm::StringRef source_text)
   llvm::SmallString<16> terminator(introducer->terminator);
   llvm::SmallString<16> escape("\\");
 
-  // 整终结符和转义序列的大小。
+  // 调整终结符和转义序列的大小。
+  // 如果终结符为'''，那么根据hash_level的大小改变终结符，如果hash_level为2，
+  // 则终结符为'''##，那么转义序列则为\##。
   terminator.resize(terminator.size() + hash_level, '#');
   escape.resize(escape.size() + hash_level, '#');
 

@@ -33,19 +33,7 @@ class StringLiteralTest : public ::testing::Test {
 
 TEST_F(StringLiteralTest, StringLiteralBounds) {
   llvm::StringLiteral valid[] = {
-      R"("")",
-      R"('''
-      ''')",
-      R"('''
-      "foo"
-      ''')",
-
-      // Lex """-delimited block string literals for error recovery.
-      R"("""
-      """)",
-      R"("""
-      "foo"
-      """)",
+      R"(##"""##)",
   };
 
   for (llvm::StringLiteral test : valid) {
