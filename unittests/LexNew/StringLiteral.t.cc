@@ -5,7 +5,7 @@
 
 #include "Cocktail/Common/Check.h"
 #include "Cocktail/Diagnostics/DiagnosticEmitter.h"
-#include "Cocktail/Testing/Lexer.t.h"
+#include "Cocktail/Testing/Lex.h"
 
 namespace Cocktail::Lex {
 namespace {

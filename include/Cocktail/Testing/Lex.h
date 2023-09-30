@@ -1,5 +1,5 @@
-#ifndef COCKTAIL_TESTING_LEXER_T_H
-#define COCKTAIL_TESTING_LEXER_T_H
+#ifndef COCKTAIL_TESTING_LEX_H
+#define COCKTAIL_TESTING_LEX_H
 
 #include <gmock/gmock.h>
 
@@ -42,4 +42,4 @@ class SingleTokenDiagnosticTranslator
 
 }  // namespace Cocktail::Testing
 
-#endif  // COCKTAIL_TESTING_LEXER_T_H
+#endif  // COCKTAIL_TESTING_LEX_H
