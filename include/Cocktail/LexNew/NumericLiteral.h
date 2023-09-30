@@ -1,5 +1,5 @@
-#ifndef COCKTAIL_LEX_NUMERIC_LITERAL_H
-#define COCKTAIL_LEX_NUMERIC_LITERAL_H
+#ifndef COCKTAIL_LEXNEW_NUMERIC_LITERAL_H
+#define COCKTAIL_LEXNEW_NUMERIC_LITERAL_H
 
 #include <optional>
 #include <variant>
@@ -62,4 +62,4 @@ class NumericLiteral {
 
 }  // namespace Cocktail::Lex
 
-#endif  // COCKTAIL_LEX_NUMERIC_LITERAL_H
+#endif  // COCKTAIL_LEXNEW_NUMERIC_LITERAL_H
