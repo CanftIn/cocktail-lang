@@ -1,4 +1,4 @@
-#include "Cocktail/LexNew/TokenKind.h"
+#include "Cocktail/Lex/TokenKind.h"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -13,7 +13,7 @@ namespace {
 using ::testing::MatchesRegex;
 
 constexpr llvm::StringLiteral SymbolRegex =
-    R"([][{}!@#%^&*()/?\\|;:.,<>=+~-]+)";
+    R"([\[\]{}!@#%^&*()/?\\|;:.,<>=+~-]+)";
 
 constexpr llvm::StringLiteral KeywordRegex = "[a-z_]+|Self|String";
 
@@ -62,7 +62,7 @@ constexpr llvm::StringLiteral KeywordRegex = "[a-z_]+|Self|String";
     EXPECT_EQ(Spelling, TokenKind::TokenName.fixed_spelling()); \
     EXPECT_THAT(Spelling, MatchesRegex(KeywordRegex.str()));    \
   }
-#include "Cocktail/LexNew/TokenKind.def"
+#include "Cocktail/Lex/TokenKind.def"
 
 TEST(TokenKindTest, SymbolsInDescendingLength) {
   int previous_length = INT_MAX;
@@ -70,7 +70,7 @@ TEST(TokenKindTest, SymbolsInDescendingLength) {
   EXPECT_LE(llvm::StringRef(Spelling).size(), previous_length)          \
       << "Symbol token not in descending length order: " << #TokenName; \
   previous_length = llvm::StringRef(Spelling).size();
-#include "Cocktail/LexNew/TokenKind.def"
+#include "Cocktail/Lex/TokenKind.def"
   EXPECT_GT(previous_length, 0);
 }
 

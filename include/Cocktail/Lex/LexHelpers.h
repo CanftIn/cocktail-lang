@@ -11,6 +11,6 @@ namespace Cocktail::Lex {
 auto CanLexInteger(DiagnosticEmitter<const char*>& emitter,
                    llvm::StringRef text) -> bool;
 
-}  // namespace Cocktail
+}  // namespace Cocktail::Lex
 
 #endif  // COCKTAIL_LEX_LEX_HELPERS_H

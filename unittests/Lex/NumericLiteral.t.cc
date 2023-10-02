@@ -1,4 +1,4 @@
-#include "Cocktail/Lexer/NumericLiteral.h"
+#include "Cocktail/Lex/NumericLiteral.h"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -8,11 +8,11 @@
 #include <vector>
 
 #include "Cocktail/Diagnostics/DiagnosticEmitter.h"
-#include "Cocktail/Testing/Lexer.t.h"
+#include "Cocktail/Testing/Lex.h"
 
+namespace Cocktail::Lex {
 namespace {
 
-using namespace Cocktail;
 using ::testing::_;
 using ::testing::Field;
 using ::testing::Matcher;
@@ -20,23 +20,24 @@ using ::testing::Property;
 using ::testing::Truly;
 using ::testing::VariantWith;
 
-struct NumericLiteralTest : ::testing::Test {
+class NumericLiteralTest : public ::testing::Test {
+ protected:
   NumericLiteralTest() : error_tracker(ConsoleDiagnosticConsumer()) {}
 
-  ErrorTrackingDiagnosticConsumer error_tracker;
-
-  auto Lex(llvm::StringRef text) -> LexedNumericLiteral {
-    llvm::Optional<LexedNumericLiteral> result = LexedNumericLiteral::Lex(text);
-    assert(result);
+  auto Lex(llvm::StringRef text) -> NumericLiteral {
+    std::optional<NumericLiteral> result = NumericLiteral::Lex(text);
+    COCKTAIL_CHECK(result);
     EXPECT_EQ(result->text(), text);
     return *result;
   }
 
-  auto Parse(llvm::StringRef text) -> LexedNumericLiteral::Value {
+  auto Parse(llvm::StringRef text) -> NumericLiteral::Value {
     Testing::SingleTokenDiagnosticTranslator translator(text);
     DiagnosticEmitter<const char*> emitter(translator, error_tracker);
     return Lex(text).ComputeValue(emitter);
   }
+
+  ErrorTrackingDiagnosticConsumer error_tracker;
 };
 
 // Matcher for signed llvm::APInt.
@@ -52,9 +53,9 @@ auto IsUnsignedInteger(uint64_t value) -> Matcher<llvm::APInt> {
 // Matcher for an integer literal value.
 template <typename ValueMatcher>
 auto HasIntValue(const ValueMatcher& value_matcher)
-    -> Matcher<LexedNumericLiteral::Value> {
-  return VariantWith<LexedNumericLiteral::IntegerValue>(
-      Field(&LexedNumericLiteral::IntegerValue::value, value_matcher));
+    -> Matcher<NumericLiteral::Value> {
+  return VariantWith<NumericLiteral::IntegerValue>(
+      Field(&NumericLiteral::IntegerValue::value, value_matcher));
 }
 
 struct RealMatcher {
@@ -65,16 +66,16 @@ struct RealMatcher {
 
 // Matcher for a real literal value.
 auto HasRealValue(const RealMatcher& real_matcher)
-    -> Matcher<LexedNumericLiteral::Value> {
-  return VariantWith<LexedNumericLiteral::RealValue>(AllOf(
-      Field(&LexedNumericLiteral::RealValue::radix, real_matcher.radix),
-      Field(&LexedNumericLiteral::RealValue::mantissa, real_matcher.mantissa),
-      Field(&LexedNumericLiteral::RealValue::exponent, real_matcher.exponent)));
+    -> Matcher<NumericLiteral::Value> {
+  return VariantWith<NumericLiteral::RealValue>(AllOf(
+      Field(&NumericLiteral::RealValue::radix, real_matcher.radix),
+      Field(&NumericLiteral::RealValue::mantissa, real_matcher.mantissa),
+      Field(&NumericLiteral::RealValue::exponent, real_matcher.exponent)));
 }
 
 // Matcher for an unrecoverable parse error.
-auto HasUnrecoverableError() -> Matcher<LexedNumericLiteral::Value> {
-  return VariantWith<LexedNumericLiteral::UnrecoverableError>(_);
+auto HasUnrecoverableError() -> Matcher<NumericLiteral::Value> {
+  return VariantWith<NumericLiteral::UnrecoverableError>(_);
 }
 
 TEST_F(NumericLiteralTest, HandlesIntegerLiteral) {
@@ -92,8 +93,9 @@ TEST_F(NumericLiteralTest, HandlesIntegerLiteral) {
   for (Testcase testcase : testcases) {
     error_tracker.Reset();
     EXPECT_THAT(Parse(testcase.token),
-                HasIntValue(IsUnsignedInteger(testcase.value)));
-    EXPECT_FALSE(error_tracker.seen_error());
+                HasIntValue(IsUnsignedInteger(testcase.value)))
+        << testcase.token;
+    EXPECT_FALSE(error_tracker.seen_error()) << testcase.token;
   }
 }
 
@@ -114,8 +116,8 @@ TEST_F(NumericLiteralTest, ValidatesBaseSpecifier) {
   };
   for (llvm::StringLiteral literal : valid) {
     error_tracker.Reset();
-    EXPECT_THAT(Parse(literal), HasIntValue(_));
-    EXPECT_FALSE(error_tracker.seen_error());
+    EXPECT_THAT(Parse(literal), HasIntValue(_)) << literal;
+    EXPECT_FALSE(error_tracker.seen_error()) << literal;
   }
 
   llvm::StringLiteral invalid[] = {
@@ -126,8 +128,8 @@ TEST_F(NumericLiteralTest, ValidatesBaseSpecifier) {
   };
   for (llvm::StringLiteral literal : invalid) {
     error_tracker.Reset();
-    EXPECT_THAT(Parse(literal), HasUnrecoverableError());
-    EXPECT_TRUE(error_tracker.seen_error());
+    EXPECT_THAT(Parse(literal), HasUnrecoverableError()) << literal;
+    EXPECT_TRUE(error_tracker.seen_error()) << literal;
   }
 }
 
@@ -149,8 +151,8 @@ TEST_F(NumericLiteralTest, ValidatesIntegerDigitSeparators) {
   };
   for (llvm::StringLiteral literal : valid) {
     error_tracker.Reset();
-    EXPECT_THAT(Parse(literal), HasIntValue(_));
-    EXPECT_FALSE(error_tracker.seen_error());
+    EXPECT_THAT(Parse(literal), HasIntValue(_)) << literal;
+    EXPECT_FALSE(error_tracker.seen_error()) << literal;
   }
 
   llvm::StringLiteral invalid[] = {
@@ -176,8 +178,8 @@ TEST_F(NumericLiteralTest, ValidatesIntegerDigitSeparators) {
   };
   for (llvm::StringLiteral literal : invalid) {
     error_tracker.Reset();
-    EXPECT_THAT(Parse(literal), HasIntValue(_));
-    EXPECT_TRUE(error_tracker.seen_error());
+    EXPECT_THAT(Parse(literal), HasIntValue(_)) << literal;
+    EXPECT_TRUE(error_tracker.seen_error()) << literal;
   }
 }
 
@@ -232,10 +234,13 @@ TEST_F(NumericLiteralTest, HandlesRealLiteral) {
     EXPECT_THAT(Parse(testcase.token),
                 HasRealValue({.radix = (testcase.radix == 10 ? 10 : 2),
                               .mantissa = IsUnsignedInteger(testcase.mantissa),
-                              .exponent = IsSignedInteger(testcase.exponent)}));
-    EXPECT_EQ(error_tracker.seen_error(), testcase.radix == 2);
+                              .exponent = IsSignedInteger(testcase.exponent)}))
+        << testcase.token;
+    EXPECT_EQ(error_tracker.seen_error(), testcase.radix == 2)
+        << testcase.token;
   }
 }
+
 TEST_F(NumericLiteralTest, HandlesRealLiteralOverflow) {
   llvm::StringLiteral input = "0x1.000001p-9223372036854775800";
   error_tracker.Reset();
@@ -258,9 +263,8 @@ TEST_F(NumericLiteralTest, ValidatesRealLiterals) {
   };
   for (llvm::StringLiteral literal : invalid_digit_separators) {
     error_tracker.Reset();
-    LexedNumericLiteral::Value value = Parse(literal);
-    EXPECT_THAT(value, HasRealValue(RealMatcher{}));
-    EXPECT_TRUE(error_tracker.seen_error());
+    EXPECT_THAT(Parse(literal), HasRealValue({})) << literal;
+    EXPECT_TRUE(error_tracker.seen_error()) << literal;
   }
 
   llvm::StringLiteral invalid[] = {
@@ -310,9 +314,16 @@ TEST_F(NumericLiteralTest, ValidatesRealLiterals) {
   };
   for (llvm::StringLiteral literal : invalid) {
     error_tracker.Reset();
-    EXPECT_THAT(Parse(literal), HasUnrecoverableError());
-    EXPECT_TRUE(error_tracker.seen_error());
+    EXPECT_THAT(Parse(literal), HasUnrecoverableError()) << literal;
+    EXPECT_TRUE(error_tracker.seen_error()) << literal;
   }
 }
 
+TEST_F(NumericLiteralTest, TooManyDigits) {
+  std::string long_number(2000, '1');
+  EXPECT_THAT(Parse(long_number), HasUnrecoverableError());
+  EXPECT_TRUE(error_tracker.seen_error());
+}
+
 }  // namespace
+}  // namespace Cocktail::Lex

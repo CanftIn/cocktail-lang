@@ -13,7 +13,7 @@ namespace {
 using ::testing::MatchesRegex;
 
 constexpr llvm::StringLiteral SymbolRegex =
-    R"([\[\]{}!@#%^&*()/?\\|;:.,<>=+~-]+)";
+    R"([][{}!@#%^&*()/?\\|;:.,<>=+~-]+)";
 
 constexpr llvm::StringLiteral KeywordRegex = "[a-z_]+|Self|String";
 

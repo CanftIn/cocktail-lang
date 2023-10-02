@@ -38,7 +38,7 @@ constexpr bool TokenKind::IsClosingSymbol[] = {
 
 constexpr TokenKind TokenKind::OpeningSymbol[] = {
 #define COCKTAIL_TOKEN(TokenName) Error,
-#define COCKTAIL_OPENING_GROUP_SYMBOL_TOKEN(TokenName, Spelling, OpeningName) \
+#define COCKTAIL_CLOSING_GROUP_SYMBOL_TOKEN(TokenName, Spelling, OpeningName) \
   OpeningName,
 #include "Cocktail/Lex/TokenKind.def"
 };
