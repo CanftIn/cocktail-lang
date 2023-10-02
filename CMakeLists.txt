@@ -21,6 +21,9 @@ option(COCKTAIL_OPT_BUILD_EXPERIMENTAL "Build cocktail experimental implementati
 # temp define: https://discourse.llvm.org/t/python-api-problem/945
 add_compile_options(-fno-rtti)
 
+# simd ssse3
+add_compile_options(-mssse3)
+
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   # for debug of stl structure while using clang compile
   add_compile_options(-fstandalone-debug)

@@ -53,6 +53,7 @@ auto VariantMatch(V&& v, Fs&&... fs) -> decltype(auto) {
 // 从给定的文本中扫描并返回一个连续的标识符前缀。
 // 当前的实现只考虑 ASCII 字符 [0-9A-Za-z_] 作为有效的标识符字符。
 // 这是一个性能敏感的函数，因此使用了向量化的代码序列来优化其扫描过程。
+// https://github.com/carbon-language/carbon-lang/pull/3122
 static auto ScanForIdentifierPrefix(llvm::StringRef text) -> llvm::StringRef {
   // 这是一个静态常量数组，用于分类字节是否为有效的标识符字符。
   // 这在非向量化的通用回退代码中用于扫描标识符的长度。
