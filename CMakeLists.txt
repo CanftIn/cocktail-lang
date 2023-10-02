@@ -127,17 +127,16 @@ target_link_libraries(${COCKTAIL_LEX_LIB}
   cocktailCommon
 )
 
-# # cocktailParse lib
-# file(GLOB_RECURSE LIB_PARSE_PATH
-#     ./lib/Parse/*.cc
-#   )
-# list(APPEND COCKTAIL_PARSE_SRCS ${LIB_PARSE_PATH})
-# add_library(${COCKTAIL_PARSE_LIB} STATIC ${COCKTAIL_PARSE_SRCS})
-# target_link_libraries(${COCKTAIL_PARSE_LIB}
-#   LLVMSupport
-#   clangBasic
-# )
-# 
+# cocktailParse lib
+file(GLOB_RECURSE LIB_PARSE_PATH
+    ./lib/Parse/*.cc
+  )
+list(APPEND COCKTAIL_PARSE_SRCS ${LIB_PARSE_PATH})
+add_library(${COCKTAIL_PARSE_LIB} STATIC ${COCKTAIL_PARSE_SRCS})
+target_link_libraries(${COCKTAIL_PARSE_LIB}
+  LLVMSupport
+)
+
 # # cocktailAST lib begin
 # file(GLOB_RECURSE LIB_AST_PATH
 #     ./lib/AST/*.cc

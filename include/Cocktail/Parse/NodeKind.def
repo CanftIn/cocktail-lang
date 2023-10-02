@@ -1,0 +1,409 @@
+// Supported x-macros are:
+// - COCKTAIL_PARSE_NODE_KIND(Name)
+//   Used as a fallback if other macros are missing. No kinds should use this
+//   directly.
+//   - COCKTAIL_PARSE_NODE_KIND_BRACKET(Name, BracketName)
+//     Defines a bracketed node kind. BracketName should refer to the node
+//     kind that is the _start_ of the bracketed range.
+//   - COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(Name, ChildCount)
+//     Defines a parse node with a set number of children, often 0. This count
+//     must be correct even when the node contains errors.
+//
+// This tree represents the subset relationship between these macros, where if a
+// specific x-macro isn't defined, it'll fall back to the parent macro.
+//
+// Parse nodes are clustered based on language feature. Comments will show their
+// relationship in postorder, using indentation for child node relationships.
+
+#if !(defined(COCKTAIL_PARSE_NODE_KIND) ||          \
+      (defined(COCKTAIL_PARSE_NODE_KIND_BRACKET) && \
+       defined(COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT)))
+#error "Must define COCKTAIL_PARSE_NODE_KIND family x-macros to use this file."
+#endif
+
+// The BRACKET and CHILD_COUNT macros will use COCKTAIL_PARSE_NODE_KIND by
+// default when undefined.
+#ifndef COCKTAIL_PARSE_NODE_KIND_BRACKET
+#define COCKTAIL_PARSE_NODE_KIND_BRACKET(Name, ...) \
+  COCKTAIL_PARSE_NODE_KIND(Name)
+#endif
+#ifndef COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT
+#define COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(Name, ...) \
+  COCKTAIL_PARSE_NODE_KIND(Name)
+#endif
+
+// The end of the file.
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(FileEnd, 0)
+
+// An invalid parse. Used to balance the parse tree. Always has an error.
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(InvalidParse, 0)
+
+// An empty declaration, such as `;`.
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(EmptyDeclaration, 0)
+
+// A name in a non-expression context, such as a declaration.
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(Name, 0)
+
+// A name in an expression context.
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(NameExpression, 0)
+
+// `package`:
+//   PackageIntroducer
+//   _external_: Name
+//     _external_: Literal
+//   PackageLibrary
+//   PackageApi or PackageImpl
+// PackageDirective
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(PackageIntroducer, 0)
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(PackageApi, 0)
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(PackageImpl, 0)
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(PackageLibrary, 1)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(PackageDirective, PackageIntroducer)
+
+// `namespace`:
+//   NamespaceStart
+//   _external_: Name or QualifiedDeclaration
+// Namespace
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(NamespaceStart, 0)
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(Namespace, 2)
+
+// A code block:
+//   CodeBlockStart
+//   _external_: statements
+// CodeBlock
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(CodeBlockStart, 0)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(CodeBlock, CodeBlockStart)
+
+// `fn`:
+//     FunctionIntroducer
+//     _external_: Name or QualifiedDeclaration
+//     _external_: ParameterList
+//       _external_: type expression
+//     ReturnType
+//   FunctionDefinitionStart
+//   _external_: statements
+// FunctionDefinition
+//
+// The above is the structure for a definition; for a declaration,
+// FunctionDefinitionStart and later nodes are removed and replaced by
+// FunctionDeclaration.
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(FunctionIntroducer, 0)
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(ReturnType, 1)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(FunctionDefinitionStart, FunctionIntroducer)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(FunctionDefinition, FunctionDefinitionStart)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(FunctionDeclaration, FunctionIntroducer)
+
+// A parameter list, possibly deduced:
+//   [Deduced]ParamertListStart
+//   _external_: [Generic]PatternBinding
+//   ParameterListComma
+// [Deduced]ParameterList
+//
+// Expressions and ParameterListComma may repeat with ParameterListComma as a
+// separator.
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(ParameterListStart, 0)
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(DeducedParameterListStart, 0)
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(ParameterListComma, 0)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(ParameterList, ParameterListStart)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(DeducedParameterList,
+                                 DeducedParameterListStart)
+
+// An array type, such as  `[i32; 3]` or `[i32;]`:
+//     ArrayExpressionStart
+//     _external_: type expression
+//   ArrayExpressionSemi
+//   _external_: expression
+// ArrayExpression
+//
+// The bound expression is optional.
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(ArrayExpressionStart, 0)
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(ArrayExpressionSemi, 2)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(ArrayExpression, ArrayExpressionSemi)
+
+// A pattern binding, such as `name: Type`:
+//   Name
+//   _external_: type expression
+// [Generic]PatternBinding
+//
+// Address and Template may be parents to [Generic]PatternBinding, in that
+// order.
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(PatternBinding, 2)
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(GenericPatternBinding, 2)
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(Address, 1)
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(Template, 1)
+
+// `var`:
+//   VariableIntroducer
+//   _external_: PatternBinding
+//   optional VariableInitializer
+//   optional _external_: expression
+// VariableDeclaration
+//
+// The VariableInitializer and following expression are paired: either both will
+// be present, or neither will.
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(VariableIntroducer, 0)
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(VariableInitializer, 0)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(VariableDeclaration, VariableIntroducer)
+
+// An expression statement:
+//   _external_: expression
+// ExpressionStatement
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(ExpressionStatement, 1)
+
+// `break`:
+//   BreakStatementStart
+// BreakStatement
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(BreakStatementStart, 0)
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(BreakStatement, 1)
+
+// `continue`:
+//   ContinueStatementStart
+// ContinueStatement
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(ContinueStatementStart, 0)
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(ContinueStatement, 1)
+
+// `return`:
+//   ReturnStatementStart
+//   _external_: expression
+// ReturnStatement
+//
+// The child expression is optional.
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(ReturnStatementStart, 0)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(ReturnStatement, ReturnStatementStart)
+
+// `for`:
+//     ForHeaderStart
+//       VariableIntroducer
+//       _external_: PatternBinding
+//         _external_: type expression
+//     ForIn
+//     _external_: expression
+//   ForHeader
+//   _external_: CodeBlock
+// ForStatement
+//
+// Versus a normal `var`, ForIn replaces VariableDeclaration.
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(ForHeaderStart, 0)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(ForIn, VariableIntroducer)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(ForHeader, ForHeaderStart)
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(ForStatement, 2)
+
+// `if` statement + `else`:
+//     IfConditionStart
+//     _external_: expression
+//   IfCondition
+//   _external_: CodeBlock
+//   IfStatementElse
+//   _external_: CodeBlock or IfStatement
+// IfStatement
+//
+// IfStatementElse and the following node are optional based on `else` presence.
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(IfConditionStart, 0)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(IfCondition, IfConditionStart)
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(IfStatementElse, 0)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(IfStatement, IfCondition)
+
+// `while`:
+//     WhileConditionStart
+//     _external_: expression
+//   WhileCondition
+//   _external_: CodeBlock
+// WhileStatement
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(WhileConditionStart, 0)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(WhileCondition, WhileConditionStart)
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(WhileStatement, 2)
+
+// Index expressions, such as `a[1]`:
+//     _external_: expression
+//   IndexExpressionStart
+//   _external_: expression
+// IndexExpression
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(IndexExpressionStart, 1)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(IndexExpression, IndexExpressionStart)
+
+// Parenthesized expressions, such as `(2)`:
+//   ParenExpressionOrTupleLiteralStart
+//   _external_: expression
+// ParenExpression
+//
+// Tuples, such as `(1, 2)`:
+//   ParenExpressionOrTupleLiteralStart
+//   _external_: expression
+//   TupleLiteralComma
+// TupleLiteral
+//
+// Expressions and TupleLiteralComma may repeat with TupleLiteralComma as a
+// separator.
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(ParenExpressionOrTupleLiteralStart, 0)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(ParenExpression,
+                                 ParenExpressionOrTupleLiteralStart)
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(TupleLiteralComma, 0)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(TupleLiteral,
+                                 ParenExpressionOrTupleLiteralStart)
+
+// Call expressions, such as `a()`:
+//     _external_: expression
+//   CallExpressionStart
+//   _external_: expression
+//   CallExpressionComma
+// CallExpression
+//
+// Expressions and CallExpressionComma may repeat with CallExpressionComma as a
+// separator.
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(CallExpressionStart, 1)
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(CallExpressionComma, 0)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(CallExpression, CallExpressionStart)
+
+// A qualified declaration, such as `a.b`:
+//   _external_: NameExpression or QualifiedDeclaration
+//   _external_: Name
+// QualifiedDeclaration
+//
+// TODO: This will eventually more general expressions, for example with
+// `GenericType(type_args).ChildType(child_type_args).Name`.
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(QualifiedDeclaration, 2)
+
+// A member access expression, such as `a.b` or
+// `GetObject().(Interface.member)`:
+//   _external_: lhs expression
+//   _external_: rhs expression
+// QualifiedExpression
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(MemberAccessExpression, 2)
+
+// A pointer member access expression, such as `a->b` or
+// `GetObject()->(Interface.member)`:
+//   _external_: lhs expression
+//   _external_: rhs expression
+// QualifiedExpression
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(PointerMemberAccessExpression, 2)
+
+// A literal.
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(Literal, 0)
+
+// A prefix operator:
+//   _external_: expression
+// PrefixOperator
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(PrefixOperator, 1)
+
+// An infix operator:
+//   _external_: lhs expression
+//   _external_: rhs expression
+// InfixOperator
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(InfixOperator, 2)
+
+// The first operand of a short-circuiting infix operator:
+//     _external_: expression
+//   ShortCircuitOperand
+//   _external_: expression
+// _external_: InfixOperator
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(ShortCircuitOperand, 1)
+
+// A postfix operator:
+//   _external_: expression
+// PostfixOperator
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(PostfixOperator, 1)
+
+// `if` expression + `then` + `else`:
+//     _external_: expression
+//   IfExpressionIf
+//     _external_: expression
+//   IfExpressionThen
+//   _external_: expression
+// IfExpressionElse
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(IfExpressionIf, 1)
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(IfExpressionThen, 1)
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(IfExpressionElse, 3)
+
+// Struct literals, such as `{.a = 0}`:
+//   StructLiteralOrStructTypeLiteralStart
+//       _external_: Name
+//     StructFieldDesignator
+//     _external_: expression
+//   StructFieldValue
+//   StructComma
+// StructLiteral
+//
+// Struct type literals, such as `{.a: i32}`:
+//       _external_: Name
+//     StructFieldDesignator
+//     _external_: type expression
+//   StructFieldType
+//   StructComma
+// StructTypeLiteral
+//
+// Elements (StructFieldValue and StructFieldType, respectively) and StructComma
+// may repeat with StructComma as a separator.
+//
+// When a valid StructFieldType or StructFieldValue cannot be formed, elements
+// may be replaced by StructFieldUnknown, which may have a preceding sibling
+// StructFieldDesignator if one was successfully parsed.
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(StructLiteralOrStructTypeLiteralStart, 0)
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(StructFieldDesignator, 1)
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(StructFieldValue, 2)
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(StructFieldType, 2)
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(StructFieldUnknown, 0)
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(StructComma, 0)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(StructLiteral,
+                                 StructLiteralOrStructTypeLiteralStart)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(StructTypeLiteral,
+                                 StructLiteralOrStructTypeLiteralStart)
+
+// `class`:
+//     ClassIntroducer
+//     _external_: Name or QualifiedDeclaration
+//   ClassDefinitionStart
+//   _external_: declarations
+// ClassDefinition
+//
+// The above is the structure for a definition; for a declaration,
+// ClassDefinitionStart and later nodes are removed and replaced by
+// ClassDeclaration.
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(ClassIntroducer, 0)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(ClassDefinitionStart, ClassIntroducer)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(ClassDefinition, ClassDefinitionStart)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(ClassDeclaration, ClassIntroducer)
+
+// `interface`:
+//     InterfaceIntroducer
+//     _external_: Name or QualifiedDeclaration
+//   InterfaceDefinitionStart
+//   _external_: declarations
+// InterfaceDefinition
+//
+// The above is the structure for a definition; for a declaration,
+// InterfaceDefinitionStart and later nodes are removed and replaced by
+// InterfaceDeclaration.
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(InterfaceIntroducer, 0)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(InterfaceDefinitionStart, InterfaceIntroducer)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(InterfaceDefinition, InterfaceDefinitionStart)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(InterfaceDeclaration, InterfaceIntroducer)
+
+// `constraint`:
+//     NamedConstraintIntroducer
+//     _external_: Name or QualifiedDeclaration
+//   NamedConstraintDefinitionStart
+//   _external_: declarations
+// NamedConstraintDefinition
+//
+// The above is the structure for a definition; for a declaration,
+// NamedConstraintDefinitionStart and later nodes are removed and replaced by
+// NamedConstraintDeclaration.
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(NamedConstraintIntroducer, 0)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(NamedConstraintDefinitionStart,
+                                 NamedConstraintIntroducer)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(NamedConstraintDefinition,
+                                 NamedConstraintDefinitionStart)
+COCKTAIL_PARSE_NODE_KIND_BRACKET(NamedConstraintDeclaration,
+                                 NamedConstraintIntroducer)
+
+// The `self` value and `Self` type identifier keywords. Typically of the form
+// `self: Self`:
+//   SelfValueName
+//   SelfTypeNameExpression
+// PatternBinding
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(SelfValueName, 0)
+COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT(SelfTypeNameExpression, 0)
+
+#undef COCKTAIL_PARSE_NODE_KIND
+#undef COCKTAIL_PARSE_NODE_KIND_BRACKET
+#undef COCKTAIL_PARSE_NODE_KIND_CHILD_COUNT
