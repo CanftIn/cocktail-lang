@@ -51,30 +51,27 @@ class Context {
           token(token),
           subtree_start(subtree_start) {}
 
-    // Prints state information for verbose output.
     auto Print(llvm::raw_ostream& output) const -> void {
       output << state << " @" << token << " subtree_start=" << subtree_start
              << " has_error=" << has_error;
     };
 
-    // The state.
+    // 表示状态。
     State state;
-    // Set to true to indicate that an error was found, and that contextual
-    // error recovery may be needed.
+    // 找到错误则设置为 true。这意味着可能需要上下文错误恢复。
     bool has_error = false;
 
-    // Precedence information used by expression states in order to determine
-    // operator precedence. The ambient_precedence deals with how the expression
-    // should interact with outside context, while the lhs_precedence is
-    // specific to the lhs of an operator expression.
+    // 用于存储表达式状态中的优先级信息，以确定操作符的优先级。
+    // 其中，ambient_precedence处理表达式如何与外部上下文交互，
+    // 而lhs_precedence适用于表示操作符表达式的左侧。
     PrecedenceGroup ambient_precedence;
     PrecedenceGroup lhs_precedence;
 
-    // A token providing context based on the subtree. This will typically be
-    // the first token in the subtree, but may sometimes be a token within. It
-    // will typically be used for the subtree's root node.
+    // 基于子树提供上下文的token。
+    // 这通常是子树中的第一个token，但有时可能是子树内的一个token。
+    // 它通常用于子树的根节点。
     Lex::Token token;
-    // The offset within the Tree of the subtree start.
+    // 子树在 Tree 中的起始偏移量。
     int32_t subtree_start;
   };
 
@@ -104,23 +101,46 @@ class Context {
   // 返回当前位置并越过它。
   auto Consume() -> Lex::Token { return *(position_++); }
 
+  // 打印堆栈转储的信息。
+  auto PrintForStackDump(llvm::raw_ostream& output) const -> void;
+
+  // 获取器函数:
+
+  // 返回解析树的引用。
+  auto tree() const -> const Tree& { return *tree_; }
+  // 返回令牌化的缓冲区的引用。
+  auto tokens() const -> const Lex::TokenizedBuffer& { return *tokens_; }
+  // 返回诊断发射器的引用。
+  auto emitter() -> Lex::TokenDiagnosticEmitter& { return *emitter_; }
+  // 返回令牌缓冲区中的当前位置。
+  auto position() -> Lex::TokenIterator& { return position_; }
+  auto position() const -> Lex::TokenIterator { return position_; }
+  // 返回状态堆栈的引用。
+  auto state_stack() -> llvm::SmallVector<StateStackEntry>& {
+    return state_stack_;
+  }
+  auto state_stack() const -> const llvm::SmallVector<StateStackEntry>& {
+    return state_stack_;
+  }
+
  private:
-  // Prints a single token for a stack dump. Used by PrintForStackDump.
+  // 用于 PrintForStackDump 打印单个令牌。
   auto PrintTokenForStackDump(llvm::raw_ostream& output, Lex::Token token) const
       -> void;
 
+  // 指向解析树的指针。
   Tree* tree_;
+  // 指向token buffer的指针。
   Lex::TokenizedBuffer* tokens_;
+  // 指向诊断发射器的指针。
   Lex::TokenDiagnosticEmitter* emitter_;
-
   // 是否输出详细（verbose）信息。
   llvm::raw_ostream* vlog_stream_;
-
   // token buffer中的当前位置。
   Lex::TokenIterator position_;
-  // EndOfFile token.
+  // 文件结束(EOF)token。
   Lex::TokenIterator end_;
-
+  // 状态堆栈。
   llvm::SmallVector<StateStackEntry> state_stack_;
 };
 
