@@ -1,0 +1,118 @@
+// Exactly one of these macros should be defined before including this header:
+// - COCKTAIL_SEMANTICS_NODE_KIND(Name)
+//   Invoked for each kind of semantic node.
+// - COCKTAIL_SEMANTICS_NODE_KIND_WITH_VALUE_KIND(Name, TypeFieldKind)
+//   Invoked for each kind of semantic node, along with information about
+//   whether the node produces a value, and if so, what kind of value.
+// - COCKTAIL_SEMANTICS_NODE_KIND_WITH_TERMINATOR_KIND(Name, TerminatorKind)
+//   Invoked for each kind of semantic node, along with information about
+//   whether the node is a terminator node.
+// - COCKTAIL_SEMANTICS_NODE_KIND_WITH_IR_NAME(Name, IRName)
+//   Invoked for each kind of semantic node, along with the name that is used
+//   to denote this node in textual Semantics IR.
+
+#if defined(COCKTAIL_SEMANTICS_NODE_KIND)
+#define COCKTAIL_SEMANTICS_NODE_KIND_IMPL(Name, IRName, ValueKind, \
+                                          TerminatorKind)          \
+  COCKTAIL_SEMANTICS_NODE_KIND(Name)
+#elif defined(COCKTAIL_SEMANTICS_NODE_KIND_WITH_VALUE_KIND)
+#define COCKTAIL_SEMANTICS_NODE_KIND_IMPL(Name, IRName, ValueKind, \
+                                          TerminatorKind)          \
+  COCKTAIL_SEMANTICS_NODE_KIND_WITH_VALUE_KIND(Name, ValueKind)
+#elif defined(COCKTAIL_SEMANTICS_NODE_KIND_WITH_TERMINATOR_KIND)
+#define COCKTAIL_SEMANTICS_NODE_KIND_IMPL(Name, IRName, ValueKind, \
+                                          TerminatorKind)          \
+  COCKTAIL_SEMANTICS_NODE_KIND_WITH_TERMINATOR_KIND(Name, TerminatorKind)
+#elif defined(COCKTAIL_SEMANTICS_NODE_KIND_WITH_IR_NAME)
+#define COCKTAIL_SEMANTICS_NODE_KIND_IMPL(Name, IRName, ValueKind, \
+                                          TerminatorKind)          \
+  COCKTAIL_SEMANTICS_NODE_KIND_WITH_IR_NAME(Name, IRName)
+#else
+#error "Must define the x-macro to use this file."
+#endif
+
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(Invalid, "invalid", None, NotTerminator)
+
+// A cross-reference between IRs.
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(CrossReference, "xref", Typed, NotTerminator)
+
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(AddressOf, "address_of", Typed, NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(ArrayIndex, "array_index", Typed,
+                                  NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(ArrayInit, "array_init", Typed, NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(ArrayType, "array_type", Typed, NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(Assign, "assign", None, NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(BinaryOperatorAdd, "add", Typed,
+                                  NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(BindName, "bind_name", Typed, NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(BindValue, "bind_value", Typed, NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(BlockArg, "block_arg", Typed, NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(BoolLiteral, "bool_literal", Typed,
+                                  NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(Branch, "br", None, Terminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(BranchIf, "br", None, TerminatorSequence)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(BranchWithArg, "br", None, Terminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(Builtin, "builtin", Typed, NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(Call, "call", Typed, NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(ConstType, "const_type", Typed, NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(Dereference, "dereference", Typed,
+                                  NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(FunctionDeclaration, "fn_decl", Untyped,
+                                  NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(InitializeFrom, "initialize_from", Typed,
+                                  NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(IntegerLiteral, "int_literal", Typed,
+                                  NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(NameReference, "name_reference", Typed,
+                                  NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(NameReferenceUntyped,
+                                  "name_reference_untyped", Untyped,
+                                  NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(Namespace, "namespace", Untyped,
+                                  NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(NoOp, "no_op", None, NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(Parameter, "parameter", Typed, NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(PointerType, "ptr_type", Typed, NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(RealLiteral, "real_literal", Typed,
+                                  NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(ReturnExpression, "return", None, Terminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(Return, "return", None, Terminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(SpliceBlock, "splice_block", Typed,
+                                  NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(StringLiteral, "string_literal", Typed,
+                                  NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(StructAccess, "struct_access", Typed,
+                                  NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(StructInit, "struct_init", Typed,
+                                  NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(StructLiteral, "struct_literal", Typed,
+                                  NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(StructTypeField, "struct_type_field", None,
+                                  NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(StructType, "struct_type", Typed,
+                                  NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(StructValue, "struct_value", Typed,
+                                  NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(TemporaryStorage, "temporary_storage", Typed,
+                                  NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(Temporary, "temporary", Typed, NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(TupleAccess, "tuple_access", Typed,
+                                  NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(TupleIndex, "tuple_index", Typed,
+                                  NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(TupleInit, "tuple_init", Typed, NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(TupleLiteral, "tuple_literal", Typed,
+                                  NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(TupleType, "tuple_type", Typed, NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(TupleValue, "tuple_value", Typed,
+                                  NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(UnaryOperatorNot, "not", Typed, NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(ValueAsReference, "value_as_reference", Typed,
+                                  NotTerminator)
+COCKTAIL_SEMANTICS_NODE_KIND_IMPL(VarStorage, "var", Typed, NotTerminator)
+
+#undef COCKTAIL_SEMANTICS_NODE_KIND
+#undef COCKTAIL_SEMANTICS_NODE_KIND_WITH_VALUE_KIND
+#undef COCKTAIL_SEMANTICS_NODE_KIND_WITH_TERMINATOR_KIND
+#undef COCKTAIL_SEMANTICS_NODE_KIND_WITH_IR_NAME
+#undef COCKTAIL_SEMANTICS_NODE_KIND_IMPL
