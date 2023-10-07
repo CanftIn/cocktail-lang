@@ -178,6 +178,7 @@ COCKTAIL_TOKEN(IntegerTypeLiteral)
 COCKTAIL_TOKEN(UnsignedIntegerTypeLiteral)
 COCKTAIL_TOKEN(FloatingPointTypeLiteral)
 COCKTAIL_TOKEN(Error)
+COCKTAIL_TOKEN(StartOfFile)
 COCKTAIL_TOKEN(EndOfFile)
 
 #undef COCKTAIL_TOKEN
