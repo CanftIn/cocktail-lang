@@ -1,13 +1,13 @@
 #ifndef COCKTAIL_SUBCOMMAND
+// TODO: We should expand `HelpText` to be a short help name, a synopsis, and a
+// long-form description.
 #define COCKTAIL_SUBCOMMAND(Name, Spelling, HelpText)
 #endif
 
 COCKTAIL_SUBCOMMAND(Help, "help",
-                    "Display help information about the driver options.")
+                  "Display help information about the driver options.")
 COCKTAIL_SUBCOMMAND(
-    DumpTokens, "dump-tokens",
-    "Dumps the sequence of tokens lexed out of the input source file.")
-COCKTAIL_SUBCOMMAND(DumpParseTree, "dump-parse-tree",
-                    "Dumps the parse tree for the input source file.")
+    Dump, "dump",
+    "Dumps intermediate compilation state for the input source file.")
 
 #undef COCKTAIL_SUBCOMMAND
