@@ -133,11 +133,12 @@ class Context {
   //    通常用于创建解析树中的节点，以表示逗号的存在。
   //
   // 2. 函数的参数 close_kind 表示列表结束的标记类型，
-  //    通常是闭合括号（如 )）。这个参数用于确定何时应该返回 Close 类型的列表标记。
-  // 
+  //    通常是闭合括号（如 )）。这个参数用于确定何时应该返回 Close
+  //    类型的列表标记。
+  //
   // 3. 参数 already_has_error 是一个布尔值，用于指示是否已经存在解析错误。
   //    如果设置为 true，则函数将抑制重复错误的发生。
-  // 
+  //
   // 4. 函数首先检查当前位置的标记，如果是逗号（,）标记，则执行以下操作：
   //    - 消耗逗号标记。
   //    - 在解析树中添加一个节点，节点类型为 comma_kind，用于表示逗号的存在。
@@ -322,6 +323,9 @@ class Context {
   // 状态堆栈。
   llvm::SmallVector<StateStackEntry> state_stack_;
 };
+
+#define COCKTAIL_PARSE_STATE(Name) auto Handle##Name(Context& context) -> void;
+#include "Cocktail/Parse/State.def"
 
 }  // namespace Cocktail::Parse
 
