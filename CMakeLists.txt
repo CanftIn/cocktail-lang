@@ -76,6 +76,7 @@ set(COCKTAIL_SOURCE_SRCS)
 set(COCKTAIL_LEX_SRCS)
 set(COCKTAIL_PARSE_SRCS)
 set(COCKTAIL_SEMIR_SRCS)
+set(COCKTAIL_CHECK_SRCS)
 set(COCKTAIL_LOWER_SRCS)
 
 set(STATIC_LIB_NAME ${PROJECT_NAME})
@@ -85,6 +86,7 @@ set(COCKTAIL_SOURCE_LIB ${PROJECT_NAME}Source)
 set(COCKTAIL_LEX_LIB ${PROJECT_NAME}Lex)
 set(COCKTAIL_PARSE_LIB ${PROJECT_NAME}Parse)
 set(COCKTAIL_SEMIR_LIB ${PROJECT_NAME}Semir)
+set(COCKTAIL_CHECK_LIB ${PROJECT_NAME}Check)
 set(COCKTAIL_LOWER_LIB ${PROJECT_NAME}Lower)
 
 set(STATIC_LIB_NAME ${PROJECT_NAME})
@@ -155,6 +157,21 @@ target_link_libraries(${COCKTAIL_SEMIR_LIB}
   cocktailCommon
   cocktailLex
   cocktailParse
+)
+
+# cocktailCheck lib
+file(GLOB_RECURSE LIB_CHECK_PATH
+    ./lib/Check/*.cc
+  )
+list(APPEND COCKTAIL_CHECK_SRCS ${LIB_CHECK_PATH})
+add_library(${COCKTAIL_CHECK_LIB} STATIC ${COCKTAIL_CHECK_SRCS})
+target_link_libraries(${COCKTAIL_CHECK_LIB}
+  LLVMSupport
+  cocktailDiagnostics
+  cocktailCommon
+  cocktailLex
+  cocktailParse
+  cocktailSemir
 )
 
 # cocktailLower lib

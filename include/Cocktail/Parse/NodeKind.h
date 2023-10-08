@@ -26,6 +26,8 @@ class NodeKind : public COCKTAIL_ENUM_BASE(NodeKind) {
 
   // 返回节点必须具有的子节点数，通常为0。要求has_bracket为假。
   auto child_count() const -> int32_t;
+
+  using EnumBase::Create;
 };
 
 #define COCKTAIL_PARSE_NODE_KIND(Name) \
