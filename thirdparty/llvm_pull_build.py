@@ -65,5 +65,5 @@ ninja_command = ["ninja", "-j3"]
 subprocess.run(ninja_command)
 
 # 安装 LLVM
-ninja_install_command = ["sudo ninja", "install"]
+ninja_install_command = ["sudo", "ninja", "install"]
 subprocess.run(ninja_install_command)
