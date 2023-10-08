@@ -32,10 +32,10 @@ print(tar_url)
 # else:
 #   os.system(f"wget {zip_url} -O {zip_filename}")
 
-#os.system(f"proxychains wget {tar_url} -O {tar_filename}")
+os.system(f"wget {tar_url} -O {tar_filename}")
 
 # 解压缩源码压缩包
-#os.system(f"tar -xzvf {tar_filename}")
+os.system(f"tar -xzvf {tar_filename}")
 
 # 进入 LLVM 源码目录
 os.chdir(llvm_dirname)
