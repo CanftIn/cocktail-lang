@@ -35,7 +35,7 @@ print(tar_url)
 os.system(f"wget {tar_url} -O {tar_filename}")
 
 # 解压缩源码压缩包
-os.system(f"tar -xzvf {tar_filename}")
+os.system(f"tar -xzvf {tar_filename} > /dev/null 2>&1")
 
 # 进入 LLVM 源码目录
 os.chdir(llvm_dirname)
@@ -51,11 +51,10 @@ cmake_command = [
     "cmake",
     "-S", "../llvm",
     "-G", "Ninja",
-    "-DLLVM_ENABLE_PROJECTS=clang;clang-tools-extra;cross-project-tests;mlir;polly;libc;libclc;lld;lldb;openmp;pstl;flang",
-    "-DLLVM_ENABLE_RUNTIMES=compiler-rt;libcxx;libcxxabi;libunwind",
-    "-DCMAKE_BUILD_TYPE=Debug",
+    "-DLLVM_ENABLE_PROJECTS=clang",
+    "-DCMAKE_BUILD_TYPE=Release",
     "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
-    "-DLLVM_TARGETS_TO_BUILD=X86;NVPTX",
+    "-DLLVM_TARGETS_TO_BUILD=X86",
     "-DCLANG_INCLUDE_TESTS=ON",
     "-DLLVM_ENABLE_ASSERTIONS=ON"
 ]
