@@ -66,7 +66,7 @@ auto FunctionContext::GetBlockArg(SemIR::NodeBlockId block_id,
   // The number of predecessor slots to reserve.
   static constexpr unsigned NumReservedPredecessors = 2;
   auto* phi = llvm::PHINode::Create(GetType(type_id), NumReservedPredecessors);
-  block->getInstList().push_front(phi);
+  phi->insertInto(block, block->begin());
   return phi;
 }
 

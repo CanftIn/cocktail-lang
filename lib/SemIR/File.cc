@@ -96,12 +96,7 @@ template <typename T, typename PrintT =
                           std::function<void(llvm::raw_ostream&, const T& val)>>
 static auto PrintList(
     llvm::raw_ostream& out, llvm::StringLiteral name, llvm::ArrayRef<T> list,
-    PrintT print = [](llvm::raw_ostream& out, const T& val) {
-      for (const auto& element : val) {
-        out << element;
-        out << ", ";
-      }
-    }) {
+    PrintT print = [](llvm::raw_ostream& out, const T& val) { out << val; }) {
   out.indent(BaseIndent);
   out << name << ": [\n";
   for (const auto& element : list) {

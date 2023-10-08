@@ -34,10 +34,11 @@ endif()
 #------------------------------------------------------------
 
 # apt install llvm-15-dev libclang-15-dev
-set(LLVM_DIR /usr/lib/llvm-15/lib/cmake/llvm)
-set(Clang_DIR /usr/lib/llvm-15/lib/cmake/clang)
+# set(LLVM_DIR /usr/lib/llvm-15/lib/cmake/llvm)
+# set(Clang_DIR /usr/lib/llvm-15/lib/cmake/clang)
 # manually install
-# set(LLVM_DIR /usr/local/lib/cmake/llvm)
+set(LLVM_DIR /usr/local/lib/cmake/llvm)
+set(Clang_DIR /usr/local/lib/cmake/clang)
 
 find_package(LLVM REQUIRED CONFIG)
 find_package(Clang REQUIRED CONFIG)
@@ -133,6 +134,7 @@ target_link_libraries(${COCKTAIL_LEX_LIB}
   LLVMSupport
   cocktailDiagnostics
   cocktailCommon
+  cocktailSource
 )
 
 # cocktailParse lib
@@ -200,12 +202,32 @@ file(GLOB_RECURSE LIB_CODEGEN_PATH
 list(APPEND COCKTAIL_CODEGEN_SRCS ${LIB_CODEGEN_PATH})
 add_library(${COCKTAIL_CODEGEN_LIB} STATIC ${COCKTAIL_CODEGEN_SRCS})
 target_link_libraries(${COCKTAIL_CODEGEN_LIB}
+LLVMCore
+LLVMTargetParser
+LLVMObject
+LLVMSupport
+  cocktailDiagnostics
+  cocktailCommon
+  cocktailLex
+  cocktailParse
+  cocktailSemir
+)
+
+# cocktailDriver lib
+file(GLOB_RECURSE LIB_DRIVER_PATH
+    ./lib/Driver/*.cc
+  )
+list(APPEND COCKTAIL_DRIVER_SRCS ${LIB_DRIVER_PATH})
+add_library(${COCKTAIL_DRIVER_LIB} STATIC ${COCKTAIL_DRIVER_SRCS})
+target_link_libraries(${COCKTAIL_DRIVER_LIB}
   LLVMSupport
   cocktailDiagnostics
   cocktailCommon
   cocktailLex
   cocktailParse
   cocktailSemir
+  cocktailLower
+  cocktailCodeGen
 )
 
 #------------------------------------------------------------

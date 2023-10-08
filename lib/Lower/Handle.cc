@@ -1,3 +1,5 @@
+#include <cmath>
+
 #include "Cocktail/Lower/FunctionContext.h"
 #include "Cocktail/SemIR/NodeKind.h"
 #include "llvm/ADT/STLExtras.h"

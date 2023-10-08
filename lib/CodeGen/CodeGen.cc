@@ -34,7 +34,7 @@ auto CodeGen::Create(llvm::Module& module, llvm::StringRef target_triple,
   constexpr llvm::StringLiteral Features = "";
 
   llvm::TargetOptions target_opts;
-  llvm::Optional<llvm::Reloc::Model> reloc_model;
+  std::optional<llvm::Reloc::Model> reloc_model;
   CodeGen codegen(module, errors);
   codegen.target_machine_.reset(target->createTargetMachine(
       target_triple, CPU, Features, target_opts, reloc_model));
@@ -42,11 +42,11 @@ auto CodeGen::Create(llvm::Module& module, llvm::StringRef target_triple,
 }
 
 auto CodeGen::EmitAssembly(llvm::raw_pwrite_stream& out) -> bool {
-  return EmitCode(out, llvm::CodeGenFileType::CGFT_AssemblyFile);
+  return EmitCode(out, llvm::CodeGenFileType::AssemblyFile);
 }
 
 auto CodeGen::EmitObject(llvm::raw_pwrite_stream& out) -> bool {
-  return EmitCode(out, llvm::CodeGenFileType::CGFT_ObjectFile);
+  return EmitCode(out, llvm::CodeGenFileType::ObjectFile);
 }
 
 auto CodeGen::EmitCode(llvm::raw_pwrite_stream& out,

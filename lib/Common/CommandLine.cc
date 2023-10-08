@@ -290,7 +290,7 @@ void MetaPrinter::PrintVersion(const Command& command) const {
 void MetaPrinter::PrintSubcommands(const Command& command) const {
   for (const auto& subcommand :
        llvm::ArrayRef(command.subcommands).drop_back()) {
-    out_ << "'" << subcommand[0]->info.name << "', ";
+    out_ << "'" << subcommand->info.name << "', ";
   }
   if (command.subcommands.size() > 1) {
     out_ << "or ";

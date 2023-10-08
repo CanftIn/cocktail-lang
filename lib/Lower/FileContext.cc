@@ -120,14 +120,8 @@ auto FileContext::BuildFunctionDeclaration(SemIR::FunctionId function_id)
                              mangled_name, llvm_module());
 
   // Set up parameters and the return slot.
-  auto param_node_it = param_node_ids.begin();
-  auto arg_it = llvm_function->arg_begin();
-
-  while (param_node_it != param_node_ids.end() &&
-         arg_it != llvm_function->arg_end()) {
-    auto node_id = *param_node_it;
-    llvm::Argument& arg = *arg_it;
-
+  for (auto [node_id, arg] :
+       llvm::zip_equal(param_node_ids, llvm_function->args())) {
     if (node_id == function.return_slot_id) {
       arg.setName("return");
       arg.addAttr(llvm::Attribute::getWithStructRetType(
@@ -136,10 +130,8 @@ auto FileContext::BuildFunctionDeclaration(SemIR::FunctionId function_id)
       arg.setName(semantics_ir().GetString(
           semantics_ir().GetNode(node_id).GetAsParameter()));
     }
-
-    ++param_node_it;
-    ++arg_it;
   }
+
 
   return llvm_function;
 }
@@ -187,12 +179,7 @@ auto FileContext::BuildFunctionDefinition(SemIR::FunctionId function_id)
     COCKTAIL_VLOG() << "Lowering " << block_id << "\n";
     auto* llvm_block = function_lowering.GetBlock(block_id);
     // Keep the LLVM blocks in lexical order.
-    llvm::BasicBlock* new_block =
-        llvm::BasicBlock::Create(llvm_context(), "", llvm_function);
-    new_block->getInstList().splice(new_block->end(),
-                                    llvm_block->getInstList());
-    llvm_block->replaceAllUsesWith(new_block);
-    llvm_block->eraseFromParent();
+    llvm_block->moveBefore(llvm_function->end());
     function_lowering.builder().SetInsertPoint(llvm_block);
     function_lowering.LowerBlock(block_id);
   }

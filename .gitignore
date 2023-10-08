@@ -41,3 +41,6 @@ fuck
 build_cmake
 core.[0-9]*
 dump
+
+thirdparty/llvm.tar.gz
+thirdparty/llvm-project-*

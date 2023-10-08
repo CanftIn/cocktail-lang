@@ -119,7 +119,7 @@ class TokenLocationTranslator : public DiagnosticLocationTranslator<Token> {
 };
 
 // 将源代码文本进行词法分析得到一系列token来构造的源代码缓冲区。
-class TokenizedBuffer {
+class TokenizedBuffer : public Printable<TokenizedBuffer> {
  public:
   // lex将源代码的缓冲区转换为标记化的缓冲区。
   static auto Lex(SourceBuffer& source, DiagnosticConsumer& consumer)
