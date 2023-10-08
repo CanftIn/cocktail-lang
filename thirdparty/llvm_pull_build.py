@@ -61,7 +61,7 @@ cmake_command = [
 subprocess.run(cmake_command)
 
 # 使用 Ninja 执行编译
-ninja_command = ["ninja", "-j32"]
+ninja_command = ["ninja", "-j"]
 subprocess.run(ninja_command)
 
 # 安装 LLVM

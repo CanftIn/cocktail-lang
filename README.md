@@ -14,6 +14,12 @@ depends on LLVM, only testing in Ubuntu yet.
 
 `sudo apt-get install cmake g++ clang-15 bison flex libgtest-dev libgmock-dev make valgrind libbenchmark-dev llvm-15-dev libmlir-15-dev libclang-15-dev`
 
+first:
+
+go to thirdparty directory and execute command: python3 llvm_pull_build.py
+
+second:
+
 ```bash
 > mkdir build
 > cd build
