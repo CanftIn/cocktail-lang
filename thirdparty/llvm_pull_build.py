@@ -51,7 +51,7 @@ cmake_command = [
     "cmake",
     "-S", "../llvm",
     "-G", "Ninja",
-    "-DLLVM_ENABLE_PROJECTS=clang",
+    #"-DLLVM_ENABLE_PROJECTS=clang",
     "-DCMAKE_BUILD_TYPE=Release",
     "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
     "-DLLVM_TARGETS_TO_BUILD=X86",
@@ -61,9 +61,9 @@ cmake_command = [
 subprocess.run(cmake_command)
 
 # 使用 Ninja 执行编译
-ninja_command = ["ninja", "-j"]
+ninja_command = ["ninja", "-j32"]
 subprocess.run(ninja_command)
 
 # 安装 LLVM
-ninja_install_command = ["ninja", "install"]
+ninja_install_command = ["sudo ninja", "install"]
 subprocess.run(ninja_install_command)
