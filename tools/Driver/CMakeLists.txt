@@ -6,9 +6,5 @@ foreach(FILE_PATH ${DRIVER_LIST})
   add_executable(cocktail_driver ${FILE_NAME}.cc)
   target_link_libraries(cocktail_driver
       cocktailDriver
-      LLVMCore
-      LLVMTargetParser
-      LLVMObject
-      LLVMSupport
     )
 endforeach()

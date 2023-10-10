@@ -24,6 +24,8 @@ struct Node : public ComparableIndexBase {
   using ComparableIndexBase::ComparableIndexBase;
 };
 
+constexpr Node Node::Invalid = Node(Node::InvalidIndex);
+
 // 基于语言语法的解析token的树。
 //
 // 这是一个纯粹的语法解析树，尚未附加任何语义。

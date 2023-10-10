@@ -111,7 +111,6 @@ file(GLOB_RECURSE COCKTAIL_DIAGNOSTICS_SRCS
   )
 add_library(${COCKTAIL_DIAGNOSTICS_LIB} STATIC ${COCKTAIL_DIAGNOSTICS_SRCS})
 target_link_libraries(${COCKTAIL_DIAGNOSTICS_LIB}
-  LLVMSupport
   cocktailCommon
 )
 
@@ -121,7 +120,6 @@ file(GLOB_RECURSE COCKTAIL_SOURCE_SRCS
   )
 add_library(${COCKTAIL_SOURCE_LIB} STATIC ${COCKTAIL_SOURCE_SRCS})
 target_link_libraries(${COCKTAIL_SOURCE_LIB}
-  LLVMSupport
   cocktailDiagnostics
 )
 
@@ -131,10 +129,10 @@ file(GLOB_RECURSE COCKTAIL_LEX_SRCS
   )
 add_library(${COCKTAIL_LEX_LIB} STATIC ${COCKTAIL_LEX_SRCS})
 target_link_libraries(${COCKTAIL_LEX_LIB}
-  LLVMSupport
   cocktailDiagnostics
   cocktailCommon
   cocktailSource
+  LLVMSupport
 )
 
 # cocktailParse lib
@@ -144,10 +142,8 @@ file(GLOB_RECURSE LIB_PARSE_PATH
 list(APPEND COCKTAIL_PARSE_SRCS ${LIB_PARSE_PATH})
 add_library(${COCKTAIL_PARSE_LIB} STATIC ${COCKTAIL_PARSE_SRCS})
 target_link_libraries(${COCKTAIL_PARSE_LIB}
-  LLVMSupport
-  cocktailDiagnostics
-  cocktailCommon
   cocktailLex
+  LLVMSupport
 )
 
 # cocktailSemir lib
@@ -157,12 +153,8 @@ file(GLOB_RECURSE LIB_SEMIR_PATH
 list(APPEND COCKTAIL_SEMIR_SRCS ${LIB_SEMIR_PATH})
 add_library(${COCKTAIL_SEMIR_LIB} STATIC ${COCKTAIL_SEMIR_SRCS})
 target_link_libraries(${COCKTAIL_SEMIR_LIB}
-  LLVMSupport
-  LLVMCore
-  cocktailDiagnostics
-  cocktailCommon
-  cocktailLex
   cocktailParse
+  LLVMSupport
 )
 
 # cocktailCheck lib
@@ -172,12 +164,8 @@ file(GLOB_RECURSE LIB_CHECK_PATH
 list(APPEND COCKTAIL_CHECK_SRCS ${LIB_CHECK_PATH})
 add_library(${COCKTAIL_CHECK_LIB} STATIC ${COCKTAIL_CHECK_SRCS})
 target_link_libraries(${COCKTAIL_CHECK_LIB}
-  LLVMSupport
-  cocktailDiagnostics
-  cocktailCommon
-  cocktailLex
-  cocktailParse
   cocktailSemir
+  LLVMSupport
 )
 
 # cocktailLower lib
@@ -187,12 +175,9 @@ file(GLOB_RECURSE LIB_LOWER_PATH
 list(APPEND COCKTAIL_LOWER_SRCS ${LIB_LOWER_PATH})
 add_library(${COCKTAIL_LOWER_LIB} STATIC ${COCKTAIL_LOWER_SRCS})
 target_link_libraries(${COCKTAIL_LOWER_LIB}
-  LLVMSupport
-  cocktailDiagnostics
-  cocktailCommon
-  cocktailLex
-  cocktailParse
   cocktailSemir
+  LLVMCore
+  LLVMSupport
 )
 
 # cocktailCodeGen lib
@@ -202,15 +187,13 @@ file(GLOB_RECURSE LIB_CODEGEN_PATH
 list(APPEND COCKTAIL_CODEGEN_SRCS ${LIB_CODEGEN_PATH})
 add_library(${COCKTAIL_CODEGEN_LIB} STATIC ${COCKTAIL_CODEGEN_SRCS})
 target_link_libraries(${COCKTAIL_CODEGEN_LIB}
-LLVMCore
-LLVMTargetParser
-LLVMObject
-LLVMSupport
-  cocktailDiagnostics
-  cocktailCommon
-  cocktailLex
-  cocktailParse
-  cocktailSemir
+  LLVMX86AsmParser
+  LLVMX86CodeGen
+  LLVMCore
+  LLVMMC
+  LLVMSupport
+  LLVMTarget
+  LLVMTargetParser
 )
 
 # cocktailDriver lib
@@ -220,14 +203,12 @@ file(GLOB_RECURSE LIB_DRIVER_PATH
 list(APPEND COCKTAIL_DRIVER_SRCS ${LIB_DRIVER_PATH})
 add_library(${COCKTAIL_DRIVER_LIB} STATIC ${COCKTAIL_DRIVER_SRCS})
 target_link_libraries(${COCKTAIL_DRIVER_LIB}
-  LLVMSupport
-  cocktailDiagnostics
-  cocktailCommon
-  cocktailLex
-  cocktailParse
-  cocktailSemir
+  cocktailCheck
   cocktailLower
   cocktailCodeGen
+  LLVMCore
+  LLVMSupport
+  LLVMTargetParser
 )
 
 #------------------------------------------------------------
@@ -242,9 +223,9 @@ endif()
 #   add_subdirectory(benchmarks #[[EXCLUDE_FROM_ALL]])
 # endif()
 # 
-# if (COCKTAIL_OPT_BUILD_TOOLS)
-#   add_subdirectory(tools)
-# endif()
+if (COCKTAIL_OPT_BUILD_TOOLS)
+  add_subdirectory(tools)
+endif()
 # 
 # if (COCKTAIL_OPT_BUILD_EXPERIMENTAL)
 #   add_subdirectory(experimental)
