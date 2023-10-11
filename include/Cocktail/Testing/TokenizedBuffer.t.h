@@ -4,27 +4,14 @@
 #include <gmock/gmock.h>
 
 #include "Cocktail/Common/Check.h"
-#include "Cocktail/Lexer/TokenizedBuffer.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/Support/Casting.h"
-#include "llvm/Support/YAMLParser.h"
+#include "Cocktail/Lex/TokenizedBuffer.h"
 
-namespace Cocktail {
-
-inline void PrintTo(const TokenizedBuffer& buffer, std::ostream* output) {
-  std::string message;
-  llvm::raw_string_ostream message_stream(message);
-  message_stream << "\n";
-  buffer.Print(message_stream);
-  *output << message_stream.str();
-}
-
-namespace Testing {
+namespace Cocktail::Testing {
 
 struct ExpectedToken {
   friend auto operator<<(std::ostream& output, const ExpectedToken& expected)
       -> std::ostream& {
-    output << "\ntoken: { kind: '" << expected.kind.Name().str() << "'";
+    output << "\ntoken: { kind: '" << expected.kind << "'";
     if (expected.line != -1) {
       output << ", line: " << expected.line;
     }
@@ -48,13 +35,13 @@ struct ExpectedToken {
     return output;
   }
 
-  TokenKind kind;
+  Lex::TokenKind kind;
   int line = -1;
   int column = -1;
   int indent_column = -1;
   bool recovery = false;
   llvm::StringRef text = "";
-  llvm::Optional<llvm::StringRef> string_contents = llvm::None;
+  std::optional<llvm::StringRef> string_contents = std::nullopt;
 };
 
 // TODO: Consider rewriting this into a `TokenEq` matcher which is used inside
@@ -62,7 +49,7 @@ struct ExpectedToken {
 // mismatches first.
 // NOLINTNEXTLINE: Expands from GoogleTest.
 MATCHER_P(HasTokens, raw_all_expected, "") {
-  const TokenizedBuffer& buffer = arg;
+  const Lex::TokenizedBuffer& buffer = arg;
   llvm::ArrayRef<ExpectedToken> all_expected = raw_all_expected;
 
   bool matches = true;
@@ -76,11 +63,10 @@ MATCHER_P(HasTokens, raw_all_expected, "") {
     int index = buffer_it - buffer.tokens().begin();
     auto token = *buffer_it++;
 
-    TokenKind actual_kind = buffer.GetKind(token);
+    Lex::TokenKind actual_kind = buffer.GetKind(token);
     if (actual_kind != expected.kind) {
-      *result_listener << "\nToken " << index << " is a "
-                       << actual_kind.Name().str() << ", expected a "
-                       << expected.kind.Name().str() << ".";
+      *result_listener << "\nToken " << index << " is a " << actual_kind
+                       << ", expected a " << expected.kind << ".";
       matches = false;
     }
 
@@ -128,8 +114,9 @@ MATCHER_P(HasTokens, raw_all_expected, "") {
     }
 
     COCKTAIL_CHECK(!expected.string_contents ||
-                   expected.kind == TokenKind::StringLiteral());
-    if (expected.string_contents && actual_kind == TokenKind::StringLiteral()) {
+                   expected.kind == Lex::TokenKind::StringLiteral);
+    if (expected.string_contents &&
+        actual_kind == Lex::TokenKind::StringLiteral) {
       llvm::StringRef actual_contents = buffer.GetStringLiteral(token);
       if (actual_contents != *expected.string_contents) {
         *result_listener << "\nToken " << index << " has contents `"
@@ -149,8 +136,6 @@ MATCHER_P(HasTokens, raw_all_expected, "") {
   return matches;
 }
 
-}  // namespace Testing
-
-}  // namespace Cocktail
+}  // namespace Cocktail::Testing
 
 #endif  // COCKTAIL_TESTING_TOKENIZED_BUFFER_T_H
