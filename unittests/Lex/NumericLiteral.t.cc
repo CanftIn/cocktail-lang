@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "Cocktail/Diagnostics/DiagnosticEmitter.h"
-#include "Cocktail/Testing/Lex.h"
+#include "Cocktail/Testing/Lex.t.h"
 
 namespace Cocktail::Lex {
 namespace {
